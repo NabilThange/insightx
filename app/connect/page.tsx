@@ -18,6 +18,7 @@ import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
 import { generateFintechData } from "@/components/data/DataGenerator";
 import TextType from "@/components/interactive/TextType";
+import PillNav from "@/components/interactive/PillNav";
 import { useDataStore } from "@/store/dataStore";
 import type { DataDNA } from "@/store/dataStore";
 
@@ -194,22 +195,24 @@ export default function ConnectPage() {
 
   return (
     <div className="connect-page">
-      <div className="connect-container">
 
-        {/* HEADER SECTION - Anchored Top */}
-        <motion.header
-          className="page-header"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <div className="header-left">
-            <span className="logo-text">InsightX</span>
-          </div>
-          <div className="header-right">
-            <span className="context-label">Data Ingestion</span>
-          </div>
-        </motion.header>
+      {/* GLOBAL NAVIGATION HEADER */}
+      <PillNav
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Workspace', href: '/workspace' },
+          { label: 'Reports', href: '/reports' },
+          { label: 'Support', href: '/support' }
+        ]}
+        activeHref="/"
+        baseColor="var(--fg)"
+        pillColor="var(--bg-surface)"
+        hoveredPillTextColor="var(--bg)"
+        pillTextColor="var(--fg)"
+        initialLoadAnimation={true}
+      />
+
+      <div className="connect-container">
 
         {/* HERO SECTION - Title + Subtitle + Actions */}
         <motion.section
@@ -461,10 +464,11 @@ export default function ConnectPage() {
           width: 100vw;
           min-height: 100vh;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           background-color: var(--bg);
-          padding: 2rem;
+          padding: 0;
         }
 
         .connect-container {
@@ -473,48 +477,10 @@ export default function ConnectPage() {
           display: flex;
           flex-direction: column;
           gap: 2rem;
+          margin-top: 2rem;
         }
 
-        /* HEADER SECTION */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding-bottom: 1rem;
-        }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .logo-text {
-            font-weight: 600;
-            font-size: 1.125rem;
-            color: var(--fg);
-            opacity: 0.5;
-            letter-spacing: -0.02em;
-            transition: opacity 0.3s ease;
-        }
-        
-        .logo-text:hover {
-            opacity: 0.7;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-        }
-
-        .context-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--fg);
-            opacity: 0.4;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
 
         /* HERO SECTION */
         .hero-section {
