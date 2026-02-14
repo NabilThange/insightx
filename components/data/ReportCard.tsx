@@ -91,31 +91,39 @@ export default function ReportCard({
         }
 
         .report-card {
-          padding: 1.5rem;
           background-color: var(--bg);
           border: 1px solid var(--stroke);
-          border-radius: 0.75rem;
-          transition: all var(--transition-fast) ease;
-          cursor: pointer;
-          height: 100%;
+          border-radius: 0.75rem; /* Standard refined radius */
+          padding: 1.5rem;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 1.25rem;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); /* Apple-like easing */
+          box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
 
         .report-card:hover {
-          border-color: var(--fg);
-          background-color: var(--loader-bg);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+          border-color: var(--stroke-strong, rgba(0,0,0,0.15));
         }
 
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 0.5rem;
+          gap: 1rem;
         }
 
-        .title {
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .report-title {
           font-size: 1rem;
           font-weight: 600;
           color: var(--fg);
@@ -123,27 +131,26 @@ export default function ReportCard({
           line-height: 1.4;
         }
 
-        .pin-badge {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.25rem;
-          background-color: var(--loader-bg);
-          border-radius: 0.25rem;
-          color: var(--accent-purple);
+        .report-date {
+          font-size: 0.75rem;
+          color: rgba(31, 31, 31, 0.5); /* Subtle metadata */
         }
 
+        /* Metric Emphasis */
         .metric-section {
           display: flex;
           align-items: baseline;
           gap: 0.75rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid var(--stroke-subtle, rgba(0,0,0,0.05));
         }
 
         .metric {
-          font-size: 2rem;
-          font-weight: 600;
+          font-size: 2rem; /* Dominant metric */
+          font-weight: 500;
           color: var(--fg);
-          font-family: "Geist Mono", "JetBrains Mono", monospace;
+          letter-spacing: -0.03em;
+          line-height: 1;
         }
 
         .trend {
@@ -152,12 +159,22 @@ export default function ReportCard({
           gap: 0.25rem;
           font-size: 0.875rem;
           font-weight: 500;
+          padding: 0.125rem 0.375rem;
+          border-radius: 0.25rem;
+          background-color: rgba(0,0,0,0.03); /* Very subtle background */
+        }
+
+        .card-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: auto;
         }
 
         .tags {
           display: flex;
-          flex-wrap: wrap;
           gap: 0.5rem;
+          flex-wrap: wrap;
         }
 
         .tag {

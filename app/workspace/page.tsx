@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Send, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Plus, MessageSquare, History, Search } from "lucide-react";
 import SuggestedQueryChips from "@/components/interactive/SuggestedQueryChips";
-import DatasetBadge from "@/components/interactive/DatasetBadge";
+import DataDNAPanel from "@/components/workspace/DataDNAPanel";
+import AgentMessage, { AgentType } from "@/components/workspace/AgentMessage";
+import GlobalHeader from "@/components/layout/GlobalHeader";
 import { useDataStore } from "@/store/dataStore";
 import { useChatStore } from "@/store/chatStore";
 
@@ -14,6 +16,8 @@ export default function WorkspacePage() {
   const [input, setInput] = useState("");
   const { dataDNA } = useDataStore();
   const { createSession } = useChatStore();
+  const [messages, setMessages] = useState<any[]>([]); // Mock state for demo
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Redirect to /connect if no dataset loaded
   useEffect(() => {
@@ -22,25 +26,34 @@ export default function WorkspacePage() {
     }
   }, [dataDNA, router]);
 
-  // Generate suggested queries based on Data DNA
-  const suggestedQueries = dataDNA
-    ? [
-      `Why are failures high?`,
-      `Show ${dataDNA.patterns[0] || "transaction"} trends`,
-      `Analyze ${dataDNA.baselines.peakHours || "peak hours"}`,
-      `Compare payment methods`,
-    ]
-    : [];
-
   const handleSend = () => {
     if (!input.trim() || !dataDNA) return;
 
-    // Create new session
-    const sessionId = createSession(dataDNA.filename);
+    // Add user message
+    const userMsg = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
 
-    // Redirect to active session
-    router.push(`/workspace/${sessionId}`);
+    // Simulate AI response after delay
+    setTimeout(() => {
+      const aiMsg = {
+        role: "agent",
+        agentType: "orchestrator",
+        content: "I've analyzed the transaction failures. It appears to be network-related.",
+        insight: "Failed transactions are 45% more likely on 4G networks during peak hours (8-9 PM).",
+        recommendation: "Investigate the 4G gateway latency logs for that specific time window.",
+        context: "Filtered for 'failed' status and grouped by network_type."
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+    }, 1000);
   };
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleQueryClick = (query: string) => {
     setInput(query);
@@ -58,361 +71,514 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="workspace-page">
-      {/* Navigation */}
-      <nav className="workspace-nav">
-        <div className="logo-name">
-          <a href="/">InsightX</a>
-        </div>
-        <div className="nav-items">
-          <a href="/workspace" className="active">
-            Workspace
-          </a>
-          <a href="/reports">Reports</a>
-          <a href="/connect">Settings</a>
-        </div>
-        <div className="divider" />
-      </nav>
+    <div className="workspace-root">
 
-      {/* Sidebar */}
-      <div className="sidebar">
-        <div className="divider" />
+      <GlobalHeader />
+
+      {/* WORKSPACE TOOLBAR - dataset badge + actions (separate from nav) */}
+      <div className="workspace-toolbar">
+        <span className="dataset-badge">{dataDNA.filename}</span>
+        <div className="toolbar-actions">
+          <button className="share-btn">Share War Room</button>
+          <div className="user-avatar">U</div>
+        </div>
       </div>
 
-      {/* Centered Content */}
-      <motion.div
-        className="centered-stage"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Dataset Badge - Top Right */}
-        <div className="dataset-badge-container">
-          <DatasetBadge filename={dataDNA.filename} rowCount={dataDNA.rowCount} />
-        </div>
+      {/* WORKSPACE BODY - 3 COLUMN LAYOUT */}
+      <div className="workspace-body">
 
-        {/* Main Content - Centered */}
-        <div className="content-wrapper">
-          <motion.div
-            className="header-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <h1>What do you want to explore?</h1>
-            <p className="subtitle">
-              Ask questions about your data. I'll analyze it using SQL and Python.
-            </p>
-          </motion.div>
+        {/* LEFT SIDEBAR */}
+        <aside className="left-sidebar">
+          <button className="new-analysis-btn" onClick={() => router.push('/connect')}>
+            <Plus size={16} />
+            New Analysis
+          </button>
 
-          <motion.div
-            className="input-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
+          <section className="sidebar-section">
+            <h4 className="section-title">Recent Threads</h4>
+            <div className="thread-list custom-scrollbar">
+              <div className="thread-item active">
+                <MessageSquare size={14} />
+                <div className="thread-info">
+                  <span className="thread-title">Transaction Failures</span>
+                  <span className="thread-time">Just now</span>
+                </div>
+              </div>
+              <div className="thread-item">
+                <MessageSquare size={14} />
+                <div className="thread-info">
+                  <span className="thread-title">User Retention Analysis</span>
+                  <span className="thread-time">2h ago</span>
+                </div>
+              </div>
+              <div className="thread-item">
+                <MessageSquare size={14} />
+                <div className="thread-info">
+                  <span className="thread-title">Payment Gateway Latency</span>
+                  <span className="thread-time">5h ago</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="sidebar-section">
+            <h4 className="section-title">Pinned Insights</h4>
+            <div className="pinned-list">
+              <div className="pinned-item">
+                <History size={14} />
+                <span>4G Timeout Pattern</span>
+              </div>
+              <div className="pinned-item">
+                <History size={14} />
+                <span>Weekend Spike Analysis</span>
+              </div>
+            </div>
+          </section>
+
+          <div className="sidebar-search">
+            <Search size={14} />
+            <input type="text" placeholder="Search..." />
+          </div>
+        </aside>
+
+        {/* MAIN CHAT PANEL */}
+        <main className="chat-panel">
+          <div className="chat-scroll-area custom-scrollbar" ref={scrollRef}>
+            <div className="chat-content-constrained">
+              {messages.length === 0 ? (
+                <div className="empty-state">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <h1>Analyze {dataDNA.filename}</h1>
+                    <div className="suggestions-container">
+                      <div className="suggestions-label">Quick Actions</div>
+                      <SuggestedQueryChips
+                        queries={dataDNA.patterns.map(p => `Analyze ${p}`)}
+                        onQueryClick={handleQueryClick}
+                      />
+                    </div>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="message-list">
+                  {messages.map((msg, i) => (
+                    msg.role === "user" ? (
+                      <div key={i} className="user-message">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      <AgentMessage key={i} {...msg} />
+                    )
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="chat-input-fixed">
             <div className="input-container">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask a question about your data..."
-                rows={4}
-                autoFocus
+                placeholder="Ask a question..."
+                rows={1}
               />
-              <button
-                className="send-btn"
-                onClick={handleSend}
-                disabled={!input.trim()}
-              >
-                <Send size={20} />
+              <button className="send-btn" onClick={handleSend} disabled={!input.trim()}>
+                <Send size={18} />
               </button>
             </div>
-            <p className="hint">
-              Press <kbd>Enter</kbd> to send · <kbd>Shift + Enter</kbd> for new line
-            </p>
-          </motion.div>
+          </div>
+        </main>
 
-          <motion.div
-            className="suggestions-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <p className="suggestions-label">Suggested queries:</p>
-            <SuggestedQueryChips
-              queries={suggestedQueries}
-              onQueryClick={handleQueryClick}
-            />
-          </motion.div>
-        </div>
+        {/* RIGHT DATA PANEL */}
+        <aside className="right-data-panel">
+          <DataDNAPanel dataDNA={dataDNA} />
+        </aside>
 
-        {/* New Chat Button - Bottom Left */}
-        <motion.button
-          className="new-chat-btn"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          onClick={() => router.push("/connect")}
-        >
-          <Plus size={20} />
-          <span>New Dataset</span>
-        </motion.button>
-      </motion.div>
+      </div>
 
       <style jsx>{`
-        .workspace-page {
-          position: relative;
-          width: 100%;
-          min-height: 100vh;
+        /* ROOT CONTAINER */
+        .workspace-root {
+          width: 100vw;
+          height: 100vh;
           background-color: var(--bg);
           color: var(--fg);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
-        .workspace-nav {
-          position: relative;
-          width: 100%;
-          height: 5rem;
-          padding: 1.5rem 1.5rem 1.5rem 7.5rem;
+        /* WORKSPACE TOOLBAR - below GlobalHeader */
+        .workspace-toolbar {
+          height: 3.5rem; /* Increased for better touch/visual target */
+          padding: 0 2rem; /* Matches GlobalHeader */
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
+          flex-shrink: 0;
+          border-bottom: 1px solid var(--stroke);
+          background: var(--bg);
+          z-index: 19;
         }
 
-        .logo-name a {
-          font-size: 1.5rem;
-          color: var(--fg);
-          text-decoration: none;
-          font-weight: 600;
-        }
-
-        .nav-items {
-          display: flex;
-          gap: 2rem;
-        }
-
-        .nav-items a {
-          color: rgba(31, 31, 31, 0.7);
-          text-decoration: none;
-          font-size: 1rem;
+        .dataset-badge {
+          font-size: 0.8125rem;
           font-weight: 500;
-          transition: color var(--transition-fast) ease;
+          color: var(--text-muted);
+          padding: 0.375rem 0.875rem;
+          background: var(--bg-surface);
+          border: 1px solid var(--stroke);
+          border-radius: 0.5rem;
+          max-width: 300px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .nav-items a:hover,
-        .nav-items a.active {
-          color: var(--fg);
+        .toolbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
         }
 
-        .workspace-nav .divider {
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          width: 100%;
-          height: 1px;
-          background-color: var(--stroke);
+        .share-btn {
+          padding: 0.5rem 1rem;
+          background: var(--fg);
+          color: var(--bg);
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
         }
 
-        .sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 5rem;
-          height: 100vh;
-          z-index: 10;
+        .share-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(31, 31, 31, 0.15);
         }
 
-        .sidebar .divider {
-          position: absolute;
-          right: 0;
-          top: 0;
-          width: 1px;
-          height: 100vh;
-          background-color: var(--stroke);
-        }
-
-        .centered-stage {
-          position: relative;
-          min-height: calc(100vh - 5rem);
+        .user-avatar {
+          width: 2rem;
+          height: 2rem;
+          border-radius: 50%;
+          background: var(--bg-elevated);
+          border: 1px solid var(--stroke);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 3rem 7.5rem 3rem 7.5rem;
-        }
-
-        .dataset-badge-container {
-          position: absolute;
-          top: 2rem;
-          right: 2rem;
-        }
-
-        .content-wrapper {
-          width: 100%;
-          max-width: 800px;
-          display: flex;
-          flex-direction: column;
-          gap: 3rem;
-        }
-
-        .header-section {
-          text-align: center;
-        }
-
-        .header-section h1 {
-          font-size: 3rem;
+          font-size: 0.875rem;
           font-weight: 600;
-          margin-bottom: 1rem;
           color: var(--fg);
-          line-height: 1.2;
         }
 
-        .subtitle {
-          font-size: 1.125rem;
-          color: rgba(31, 31, 31, 0.7);
-          line-height: 1.5;
+        /* WORKSPACE BODY - 3 COLUMNS */
+        .workspace-body {
+          display: flex;
+          flex: 1;
+          overflow: hidden;
         }
 
-        .input-section {
+        /* LEFT SIDEBAR */
+        .left-sidebar {
+          width: 280px;
+          flex-shrink: 0;
           display: flex;
           flex-direction: column;
+          background: var(--bg-surface);
+          border-right: 1.5px solid var(--stroke);
+          overflow: hidden;
+        }
+
+        .new-analysis-btn {
+          margin: 1.25rem;
+          padding: 0.75rem 1rem;
+          background: var(--fg);
+          color: var(--bg);
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          transition: all 0.2s;
+        }
+
+        .new-analysis-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(31, 31, 31, 0.15);
+        }
+
+        .sidebar-section {
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 1rem; /* Tighter spacing */
+          padding-top: 1rem;
+        }
+
+        .section-title {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          margin: 0 0 0.75rem 0;
+          padding: 0 1.25rem;
+        }
+
+        .thread-list {
+          display: flex;
+          flex-direction: column;
+          max-height: 200px;
+          overflow-y: auto;
+        }
+
+        .thread-item {
+          padding: 0.625rem 1rem; /* Tighter padding */
+          display: flex;
+          align-items: flex-start;
           gap: 0.75rem;
+          cursor: pointer;
+          transition: background 0.2s;
+          border-left: 2px solid transparent;
+          margin: 0 0.5rem; /* Inset slightly */
+          border-radius: 4px;
+        }
+
+        .thread-item:hover {
+          background: var(--bg-base);
+        }
+
+        .thread-item.active {
+          background: var(--bg-base);
+          border-left-color: var(--accent-blue);
+        }
+
+        .thread-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+          flex: 1;
+        }
+
+        .thread-title {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: var(--fg);
+        }
+
+        .thread-time {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .pinned-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          padding: 0 1.25rem;
+        }
+
+        .pinned-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          background: var(--bg-base);
+          border-radius: 0.375rem;
+          font-size: 0.8125rem;
+          color: var(--fg);
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .pinned-item:hover {
+          background: var(--bg-elevated);
+        }
+
+        .sidebar-search {
+          margin: auto 1.25rem 1.25rem;
+          padding: 0.5rem 0.75rem;
+          background: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 0.375rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: var(--text-muted);
+        }
+
+        .sidebar-search input {
+          background: transparent;
+          border: none;
+          outline: none;
+          font-size: 0.875rem;
+          width: 100%;
+          color: var(--fg);
+        }
+
+        /* MAIN CHAT PANEL */
+        .chat-panel {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg);
+          overflow: hidden;
+        }
+
+        .chat-scroll-area {
+          flex: 1;
+          overflow-y: auto;
+          padding: 2rem;
+        }
+
+        .chat-content-constrained {
+          max-width: 800px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .empty-state {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          min-height: 400px;
+        }
+        
+        .empty-state h1 {
+          font-size: 2rem;
+          font-weight: 500;
+          margin-bottom: 1.5rem;
+          color: var(--fg);
+        }
+
+        .suggestions-container {
+          background: var(--bg-surface);
+          border: 1px solid var(--stroke);
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-top: 1rem;
+        }
+
+        .suggestions-label {
+          font-size: 0.8125rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          margin-bottom: 1rem;
+        }
+
+        .message-list {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+          width: 100%;
+        }
+
+        .user-message {
+          align-self: flex-end;
+          background: var(--bg-elevated);
+          padding: 0.75rem 1.25rem;
+          border-radius: 1rem 1rem 0 1rem;
+          max-width: 80%;
+          font-size: 1rem;
+          color: var(--fg);
+        }
+
+        .chat-input-fixed {
+          padding: 1.5rem 2rem;
+          border-top: 1px solid var(--stroke);
+          background: var(--bg);
+          flex-shrink: 0;
         }
 
         .input-container {
+          max-width: 800px;
+          margin: 0 auto;
           position: relative;
+          background: var(--bg-surface);
+          border: 1px solid var(--stroke);
+          border-radius: 0.75rem;
+          padding: 0.5rem;
           display: flex;
-          gap: 0.75rem;
           align-items: flex-end;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .input-container:focus-within {
+          border-color: var(--fg);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
         .input-container textarea {
           flex: 1;
-          padding: 1rem 1.25rem;
-          background-color: transparent;
-          border: 1px solid var(--stroke);
-          border-radius: 0.75rem;
+          border: none;
+          background: transparent;
+          padding: 0.75rem 1rem;
+          resize: none;
+          outline: none;
           font-family: inherit;
           font-size: 1rem;
+          max-height: 120px;
           color: var(--fg);
-          resize: none;
-          line-height: 1.5;
-          transition: all var(--transition-fast) ease;
-        }
-
-        .input-container textarea:focus {
-          outline: none;
-          border-color: var(--accent);
-          background-color: var(--loader-bg);
-        }
-
-        .input-container textarea::placeholder {
-          color: rgba(31, 31, 31, 0.5);
         }
 
         .send-btn {
-          padding: 1rem;
-          background-color: var(--fg);
+          background: var(--fg);
           color: var(--bg);
           border: none;
-          border-radius: 0.75rem;
+          border-radius: 0.5rem;
+          padding: 0.5rem;
           cursor: pointer;
-          transition: all var(--transition-fast) ease;
+          transition: all 0.2s;
           display: flex;
           align-items: center;
           justify-content: center;
         }
-
-        .send-btn:hover:not(:disabled) {
-          transform: scale(1.02);
-        }
-
+        
         .send-btn:disabled {
-          opacity: 0.5;
+          opacity: 0.3;
           cursor: not-allowed;
         }
 
-        .hint {
-          text-align: center;
-          font-size: 0.875rem;
-          color: rgba(31, 31, 31, 0.7);
+        /* RIGHT DATA PANEL */
+        .right-data-panel {
+          width: 320px;
+          flex-shrink: 0;
+          height: 100%;
+          overflow-y: auto;
+          border-left: 1.5px solid var(--stroke);
         }
 
-        .hint kbd {
-          padding: 0.125rem 0.375rem;
-          background-color: var(--loader-bg);
-          border: 1px solid var(--stroke);
-          border-radius: 0.25rem;
-          font-family: "Geist Mono", "JetBrains Mono", monospace;
-          font-size: 0.75rem;
+        /* CUSTOM SCROLLBAR */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
         }
-
-        .suggestions-section {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          align-items: center;
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
         }
-
-        .suggestions-label {
-          font-size: 0.875rem;
-          color: rgba(31, 31, 31, 0.7);
-          font-weight: 500;
-        }
-
-        .new-chat-btn {
-          position: absolute;
-          bottom: 2rem;
-          left: 7.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background-color: var(--bg);
-          border: 1px solid var(--stroke);
-          border-radius: 0.375rem;
-          color: var(--fg);
-          font-family: inherit;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all var(--transition-fast) ease;
-        }
-
-        .new-chat-btn:hover {
-          border-color: var(--success);
-          background-color: var(--loader-bg);
-        }
-
-        @media (max-width: 1000px) {
-          .centered-stage {
-            padding: 2rem 1.5rem 2rem 7.5rem;
-          }
-
-          .header-section h1 {
-            font-size: 2rem;
-          }
-
-          .subtitle {
-            font-size: 1rem;
-          }
-
-          .dataset-badge-container {
-            position: static;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: center;
-          }
-
-          .new-chat-btn {
-            left: 1.5rem;
-            bottom: 1.5rem;
-          }
-
-          .nav-items {
-            display: none;
-          }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: var(--stroke);
+          border-radius: 3px;
         }
       `}</style>
     </div>
   );
 }
+

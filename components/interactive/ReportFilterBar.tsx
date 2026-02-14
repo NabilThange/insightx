@@ -136,96 +136,118 @@ export default function ReportFilterBar({
           gap: 0.75rem;
           padding: 0.75rem 1rem;
           background-color: transparent;
-          border: 1px solid var(--stroke);
-          border-radius: 0.375rem;
-          transition: border-color var(--transition-fast) ease;
+          margin-bottom: 2rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
         }
 
-        .search-input-wrapper:focus-within {
-          border-color: var(--accent);
+        .top-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
         }
 
-        .search-input-wrapper :global(svg) {
-          color: rgba(31, 31, 31, 0.7);
+        .search-container {
+          position: relative;
+          flex: 1;
+          max-width: 400px;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 0.75rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: rgba(31, 31, 31, 0.4);
+          pointer-events: none;
         }
 
         .search-input {
-          flex: 1;
-          background: none;
-          border: none;
+          width: 100%;
+          padding: 0.625rem 1rem 0.625rem 2.5rem;
+          font-size: 0.9375rem;
+          background-color: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 0.5rem;
           color: var(--fg);
-          font-family: inherit;
-          font-size: 0.875rem;
+          transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
           outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
         }
 
         .search-input::placeholder {
-          color: rgba(31, 31, 31, 0.5);
+          color: rgba(31, 31, 31, 0.4);
         }
 
-        .filter-toggle,
-        .clear-btn {
+        .filter-toggle {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          background-color: transparent;
+          padding: 0.625rem 1rem;
+          background-color: var(--bg);
           border: 1px solid var(--stroke);
-          border-radius: 0.375rem;
-          color: rgba(31, 31, 31, 0.7);
-          font-family: inherit;
+          border-radius: 0.5rem;
           font-size: 0.875rem;
           font-weight: 500;
+          color: var(--fg);
           cursor: pointer;
-          transition: all var(--transition-fast) ease;
-          white-space: nowrap;
+          transition: all 0.2s ease;
         }
 
-        .filter-toggle:hover,
-        .clear-btn:hover {
-          border-color: var(--fg);
-          color: var(--fg);
+        .filter-toggle:hover {
+          background-color: rgba(0,0,0,0.02);
         }
 
         .filter-toggle.active {
-          background-color: var(--fg);
+          background-color: rgba(0,0,0,0.05);
           border-color: var(--fg);
-          color: var(--bg);
         }
 
         .filter-options {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          padding-top: 1rem;
+          overflow: hidden;
         }
 
-        .filter-section h4 {
+        .filter-group {
+          padding: 1rem;
+          background-color: var(--bg-surface, #f9f9f9); /* Subtle background for filter area */
+          border: 1px solid var(--stroke-subtle);
+          border-radius: 0.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .group-label {
           font-size: 0.75rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: rgba(31, 31, 31, 0.7);
-          margin: 0 0 0.75rem 0;
+          color: rgba(31, 31, 31, 0.5);
+          margin-bottom: 0.5rem;
+          display: block;
         }
 
-        .filter-chips {
+        .options-list {
           display: flex;
           flex-wrap: wrap;
           gap: 0.5rem;
         }
 
         .filter-chip {
-          padding: 0.5rem 1rem;
-          background-color: var(--loader-bg);
+          padding: 0.375rem 0.75rem;
+          font-size: 0.875rem;
+          background-color: var(--bg);
           border: 1px solid var(--stroke);
-          border-radius: 9999px;
+          border-radius: 999px; /* Pill shape */
           color: rgba(31, 31, 31, 0.7);
-          font-family: inherit;
-          font-size: 0.75rem;
-          font-weight: 500;
           cursor: pointer;
-          transition: all var(--transition-fast) ease;
+          transition: all 0.2s ease;
         }
 
         .filter-chip:hover {
@@ -235,11 +257,6 @@ export default function ReportFilterBar({
 
         .filter-chip.active {
           background-color: var(--fg);
-          border-color: var(--fg);
-          color: var(--bg);
-        }
-
-        @media (max-width: 1000px) {
           .search-row {
             flex-wrap: wrap;
           }
