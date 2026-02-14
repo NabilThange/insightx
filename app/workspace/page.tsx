@@ -7,6 +7,7 @@ import { Send, Plus, MessageSquare, History, Search } from "lucide-react";
 import SuggestedQueryChips from "@/components/interactive/SuggestedQueryChips";
 import DataDNAPanel from "@/components/workspace/DataDNAPanel";
 import AgentMessage, { AgentType } from "@/components/workspace/AgentMessage";
+import GlobalHeader from "@/components/layout/GlobalHeader";
 import { useDataStore } from "@/store/dataStore";
 import { useChatStore } from "@/store/chatStore";
 
@@ -72,23 +73,16 @@ export default function WorkspacePage() {
   return (
     <div className="workspace-root">
 
-      {/* TOP NAVIGATION BAR */}
-      <nav className="top-nav-bar">
-        <div className="nav-left">
-          <span className="logo-text" onClick={() => router.push('/')}>InsightX</span>
-          <div className="nav-links">
-            <span className="nav-link active">Workspace</span>
-            <span className="nav-link" onClick={() => router.push('/reports')}>Reports</span>
-          </div>
-        </div>
-        <div className="nav-center">
-          <span className="dataset-badge">{dataDNA.filename}</span>
-        </div>
-        <div className="nav-right">
+      <GlobalHeader />
+
+      {/* WORKSPACE TOOLBAR - dataset badge + actions (separate from nav) */}
+      <div className="workspace-toolbar">
+        <span className="dataset-badge">{dataDNA.filename}</span>
+        <div className="toolbar-actions">
           <button className="share-btn">Share War Room</button>
           <div className="user-avatar">U</div>
         </div>
-      </nav>
+      </div>
 
       {/* WORKSPACE BODY - 3 COLUMN LAYOUT */}
       <div className="workspace-body">
@@ -219,9 +213,9 @@ export default function WorkspacePage() {
           flex-direction: column;
         }
 
-        /* TOP NAVIGATION BAR */
-        .top-nav-bar {
-          height: 4rem;
+        /* WORKSPACE TOOLBAR - below GlobalHeader */
+        .workspace-toolbar {
+          height: 3rem;
           padding: 0 2rem;
           display: flex;
           align-items: center;
@@ -229,64 +223,7 @@ export default function WorkspacePage() {
           flex-shrink: 0;
           border-bottom: 1px solid var(--stroke);
           background: var(--bg);
-          z-index: 20;
-        }
-
-        .nav-left {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
-
-        .logo-text {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--fg);
-          cursor: pointer;
-          transition: opacity 0.2s;
-        }
-
-        .logo-text:hover {
-          opacity: 0.7;
-        }
-
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
-
-        .nav-link {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--text-muted);
-          cursor: pointer;
-          transition: color 0.2s;
-          position: relative;
-        }
-
-        .nav-link:hover {
-          color: var(--fg);
-        }
-
-        .nav-link.active {
-          color: var(--fg);
-        }
-
-        .nav-link.active::after {
-          content: '';
-          position: absolute;
-          bottom: -1.125rem;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: var(--fg);
-        }
-
-        .nav-center {
-          flex: 1;
-          display: flex;
-          justify-content: center;
+          z-index: 19;
         }
 
         .dataset-badge {
@@ -303,7 +240,7 @@ export default function WorkspacePage() {
           white-space: nowrap;
         }
 
-        .nav-right {
+        .toolbar-actions {
           display: flex;
           align-items: center;
           gap: 1rem;

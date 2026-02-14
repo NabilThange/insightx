@@ -1,424 +1,274 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, Download } from "lucide-react";
-import ReportCard from "@/components/data/ReportCard";
-import ReportFilterBar from "@/components/interactive/ReportFilterBar";
+import GlobalHeader from "@/components/layout/GlobalHeader";
+import ReportsHero from "@/components/layout/ReportsHero";
+import ReportsFilterBar from "@/components/interactive/ReportsFilterBar";
+import InsightCard from "@/components/data/InsightCard";
+import { ArrowDown } from "lucide-react";
 
-interface Report {
+// Mock Data Types
+interface ReportData {
   id: string;
   title: string;
-  date: string;
+  category: string;
+  timestamp: string;
   metric: string;
-  trend?: "up" | "down" | "neutral";
-  trendValue?: string;
-  isPinned?: boolean;
+  trend: "up" | "down" | "neutral";
+  trendValue: string;
+  chartType: "line" | "bar";
+  chartData: any[]; // Using any[] for simplicity with Recharts data prop
+  recommendation?: string;
   tags: string[];
+  isPinned?: boolean;
 }
+
+// Chart Data Generators
+const generateTrendData = (length: number) => {
+  return Array.from({ length }, (_, i) => {
+    let base = 50;
+    const random = Math.random() * 20 - 10;
+    base += i * 2; // Slight upward trend
+    return { name: `Day ${i + 1}`, value: Math.max(0, Math.round(base + random)) };
+  });
+};
+
+const generateSpikeData = (length: number) => {
+  return Array.from({ length }, (_, i) => {
+    const isSpike = i === Math.floor(length / 2);
+    return { name: `Day ${i + 1}`, value: isSpike ? Math.round(Math.random() * 100 + 150) : Math.round(Math.random() * 50 + 20) };
+  });
+};
 
 export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<{ tag?: string; dateRange?: string }>({});
+  // simple filter state placeholder
+  const [filters, setFilters] = useState({});
 
-  // Mock reports data
-  const allReports: Report[] = [
+  // Mock Reports Data
+  const pinnedReports: ReportData[] = [
     {
       id: "1",
-      title: "Transaction Failure Analysis",
-      date: "Today, 9:45 PM",
-      metric: "23%",
+      title: "Transaction Failure Rate Spike",
+      category: "Critical Alert",
+      timestamp: "Today, 9:45 PM",
+      metric: "2.3%",
       trend: "down",
-      trendValue: "-5%",
-      isPinned: true,
-      tags: ["Failures", "Network"],
+      trendValue: "+15%",
+      chartType: "bar",
+      chartData: generateSpikeData(14),
+      recommendation: "Investigate gateway timeouts in region US-East-1 immediately.",
+      tags: ["Failures", "Network", "Urgent"],
+      isPinned: true
     },
     {
       id: "2",
-      title: "Peak Hour Transaction Volume",
-      date: "Yesterday",
-      metric: "250K",
+      title: "User Acquisition Velocity",
+      category: "Growth",
+      timestamp: "Yesterday",
+      metric: "1,240",
       trend: "up",
-      trendValue: "+15%",
-      isPinned: true,
-      tags: ["Transactions", "Peak Hours"],
+      trendValue: "+8.5%",
+      chartType: "line",
+      chartData: generateTrendData(14),
+      recommendation: "Conversion rates are stabilizing. Consider increasing ad spend.",
+      tags: ["Growth", "Acquisition"],
+      isPinned: true
     },
     {
       id: "3",
-      title: "Payment Method Distribution",
-      date: "2 days ago",
-      metric: "3 methods",
-      trend: "neutral",
-      tags: ["Transactions"],
-    },
+      title: "API Latency Degradation",
+      category: "Performance",
+      timestamp: "2 days ago",
+      metric: "340ms",
+      trend: "down",
+      trendValue: "+12%",
+      chartType: "line",
+      chartData: generateTrendData(14),
+      recommendation: "Database indexing recommended for users table.",
+      tags: ["Performance", "Backend"],
+      isPinned: true
+    }
+  ];
+
+  const allReportsList: ReportData[] = [
     {
       id: "4",
-      title: "4G Network Timeout Rate",
-      date: "3 days ago",
-      metric: "23%",
+      title: "Churn Rate Analysis",
+      category: "Retention",
+      timestamp: "3 days ago",
+      metric: "0.8%",
       trend: "up",
-      trendValue: "+8%",
-      tags: ["Network", "Failures"],
+      trendValue: "-2.1%",
+      chartType: "line",
+      chartData: generateTrendData(14),
+      tags: ["Churn", "Retention"],
+      isPinned: false
     },
     {
       id: "5",
-      title: "Weekend vs Weekday Trends",
-      date: "1 week ago",
-      metric: "+15%",
-      trend: "up",
-      trendValue: "+15%",
-      tags: ["Trends"],
+      title: "Payment Method Distribution",
+      category: "Transactions",
+      timestamp: "1 week ago",
+      metric: "4 Types",
+      trend: "neutral",
+      trendValue: "0%",
+      chartType: "bar",
+      chartData: generateSpikeData(7),
+      tags: ["Payments", "Finance"],
+      isPinned: false
     },
     {
       id: "6",
-      title: "Average Transaction Amount",
-      date: "1 week ago",
-      metric: "₹1,245",
+      title: "Server Load Distribution",
+      category: "Infrastructure",
+      timestamp: "1 week ago",
+      metric: "45%",
       trend: "up",
-      trendValue: "+3%",
-      tags: ["Transactions"],
-    },
+      trendValue: "+5%",
+      chartType: "line",
+      chartData: generateTrendData(14),
+      tags: ["Server", "DevOps"],
+      isPinned: false
+    }
   ];
 
-  // Filter reports
-  const filteredReports = allReports.filter((report) => {
-    // Search filter
-    if (searchQuery && !report.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-
-    // Tag filter
-    if (filters.tag && !report.tags.includes(filters.tag)) {
-      return false;
-    }
-
-    // Date range filter (simplified)
-    if (filters.dateRange === "Today" && !report.date.includes("Today")) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Separate pinned and unpinned
-  const pinnedReports = filteredReports.filter((r) => r.isPinned);
-  const unpinnedReports = filteredReports.filter((r) => !r.isPinned);
-
   return (
-    <div className="reports-page">
-      {/* Navigation */}
-      <nav className="reports-nav">
-        <div className="logo-name">
-          <a href="/">InsightX</a>
-        </div>
-        <div className="nav-items">
-          <a href="/workspace">Workspace</a>
-          <a href="/reports" className="active">
-            Reports
-          </a>
-          <a href="/connect">Settings</a>
-        </div>
-        <div className="divider" />
-      </nav>
+    <div className="reports-page-wrapper">
+      {/* Global Header handled inside page layout now */}
+      <GlobalHeader />
 
-      {/* Sidebar */}
-      <div className="sidebar">
-        <div className="divider" />
-      </div>
+      <main className="reports-content">
+        <ReportsHero />
+        <ReportsFilterBar onSearch={setSearchQuery} onFilterChange={setFilters} />
 
-      {/* Main Content */}
-      <div className="reports-content">
-        {/* Header */}
-        <div className="reports-header">
-          <div>
-            <h1>Reports & Insights</h1>
-            <p className="subtitle">
-              Saved analyses and pinned insights from your workspace
-            </p>
+        {/* PINNED SECTION */}
+        <section className="reports-section">
+          <h3 className="section-title">Pinned Critical Insights</h3>
+          <div className="insight-grid">
+            {pinnedReports.map((report, index) => (
+              <InsightCard
+                key={report.id}
+                id={report.id}
+                title={report.title}
+                category={report.category}
+                timestamp={report.timestamp}
+                metric={report.metric}
+                trend={report.trend}
+                trendValue={report.trendValue}
+                chartType={report.chartType}
+                chartData={report.chartData}
+                recommendation={report.recommendation}
+                tags={report.tags}
+                index={index}
+              />
+            ))}
           </div>
-          <div className="header-actions">
-            <button className="action-btn secondary">
-              <Download size={18} />
-              <span>Export All</span>
-            </button>
-            <button className="action-btn primary" onClick={() => window.location.href = "/workspace"}>
-              <Plus size={18} />
-              <span>New Analysis</span>
-            </button>
+        </section>
+
+        {/* ALL REPORTS SECTION */}
+        <section className="reports-section">
+          <h3 className="section-title">All Reports</h3>
+          <div className="insight-grid">
+            {allReportsList.map((report, index) => (
+              <InsightCard
+                key={report.id}
+                id={report.id}
+                title={report.title}
+                category={report.category}
+                timestamp={report.timestamp}
+                metric={report.metric}
+                trend={report.trend}
+                trendValue={report.trendValue}
+                chartType={report.chartType}
+                chartData={report.chartData}
+                recommendation={report.recommendation}
+                tags={report.tags}
+                index={index}
+              />
+            ))}
           </div>
+        </section>
+
+        <div className="load-more-container">
+          <button className="load-more-btn">
+            Load More Reports <ArrowDown size={14} />
+          </button>
         </div>
-
-        {/* Filter Bar */}
-        <ReportFilterBar
-          onSearchChange={setSearchQuery}
-          onFilterChange={setFilters}
-        />
-
-        {/* Reports Grid */}
-        <div className="reports-container">
-          {/* Pinned Section */}
-          {pinnedReports.length > 0 && (
-            <div className="reports-section">
-              <h2 className="section-title">Pinned</h2>
-              <div className="reports-grid">
-                {pinnedReports.map((report, index) => (
-                  <ReportCard key={report.id} {...report} index={index} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* All Reports Section */}
-          {unpinnedReports.length > 0 && (
-            <div className="reports-section">
-              <h2 className="section-title">
-                {pinnedReports.length > 0 ? "All Reports" : "Reports"}
-              </h2>
-              <div className="reports-grid">
-                {unpinnedReports.map((report, index) => (
-                  <ReportCard
-                    key={report.id}
-                    {...report}
-                    index={index + pinnedReports.length}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {filteredReports.length === 0 && (
-            <motion.div
-              className="empty-state"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h3>No reports found</h3>
-              <p>Try adjusting your filters or create a new analysis</p>
-            </motion.div>
-          )}
-        </div>
-      </div>
+      </main>
 
       <style jsx>{`
-        .reports-page {
-          position: relative;
-          width: 100vw;
+        .reports-page-wrapper {
           min-height: 100vh;
           background-color: var(--bg);
-          color: var(--fg);
-        }
-
-        .reports-nav {
-          position: relative;
-          width: 100vw;
-          height: 5rem;
-          padding: 1.5rem 1.5rem 1.5rem 7.5rem;
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background-color: var(--bg);
-        }
-
-        .logo-name a {
-          font-size: 1.5rem;
-          color: var(--fg);
-          text-decoration: none;
-          font-weight: 600;
-        }
-
-        .nav-items {
-          display: flex;
-          gap: 2rem;
-        }
-
-        .nav-items a {
-          color: rgba(31, 31, 31, 0.7);
-          text-decoration: none;
-          font-size: 1rem;
-          font-weight: 500;
-          transition: color var(--transition-fast) ease;
-        }
-
-        .nav-items a:hover,
-        .nav-items a.active {
-          color: var(--fg);
-        }
-
-        .reports-nav .divider {
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          width: 100%;
-          height: 1px;
-          background-color: var(--stroke);
-        }
-
-        .sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 5rem;
-          height: 100vh;
-          z-index: 10;
-        }
-
-        .sidebar .divider {
-          position: absolute;
-          right: 0;
-          top: 0;
-          width: 1px;
-          height: 100vh;
-          background-color: var(--stroke);
+          flex-direction: column;
         }
 
         .reports-content {
-          padding: 0 0 3rem 5rem;
-          min-height: calc(100vh - 5rem);
-        }
-
-        .reports-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding: 3rem 3rem 2rem 3rem;
-        }
-
-        .reports-header h1 {
-          font-size: 2.5rem;
-          font-weight: 600;
-          margin: 0 0 0.5rem 0;
-          color: var(--fg);
-        }
-
-        .subtitle {
-          font-size: 1rem;
-          color: rgba(31, 31, 31, 0.7);
-          margin: 0;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
-
-        .action-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          border-radius: 0.375rem;
-          font-family: inherit;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all var(--transition-fast) ease;
-          border: none;
-        }
-
-        .action-btn.secondary {
-          background-color: var(--bg);
-          border: 1px solid var(--stroke);
-          color: var(--fg);
-        }
-
-        .action-btn.secondary:hover {
-          border-color: var(--fg);
-          background-color: var(--loader-bg);
-        }
-
-        .action-btn.primary {
-          background-color: var(--fg);
-          color: var(--bg);
-        }
-
-        .action-btn.primary:hover {
-          transform: scale(1.02);
-        }
-
-        .reports-container {
-          display: flex;
-          flex-direction: column;
-          gap: 3rem;
+          max-width: 1200px;
+          margin: 0 auto;
+          width: 100%;
+          padding: 2rem; /* Consistent padding */
+          flex: 1;
         }
 
         .reports-section {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
+          margin-bottom: 3rem;
         }
 
         .section-title {
-          font-size: 1rem;
+          font-size: 0.8125rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: rgba(31, 31, 31, 0.7);
-          margin: 0;
-          padding: 0 3rem;
+          color: var(--text-muted);
+          margin-bottom: 1.5rem;
+          padding-left: 0.25rem;
         }
 
-        .reports-grid {
+        .insight-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          grid-template-columns: 1fr;
           gap: 1.5rem;
-          padding: 0 3rem;
         }
 
-        .empty-state {
-          text-align: center;
-          padding: 4rem 2rem;
+        @media (min-width: 768px) {
+          .insight-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
 
-        .empty-state h3 {
-          font-size: 1.5rem;
-          font-weight: 600;
+        @media (min-width: 1100px) {
+          .insight-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        .load-more-container {
+          display: flex;
+          justify-content: center;
+          padding: 2rem 0 4rem;
+        }
+
+        .load-more-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: var(--bg-surface);
+          border: 1px solid var(--stroke);
+          border-radius: 2rem;
+          font-size: 0.875rem;
+          font-weight: 500;
           color: var(--fg);
-          margin: 0 0 0.5rem 0;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
-        .empty-state p {
-          font-size: 1rem;
-          color: rgba(31, 31, 31, 0.7);
-          margin: 0;
-        }
-
-        @media (max-width: 1000px) {
-          .reports-content {
-            padding-left: 5rem;
-          }
-
-          .reports-header {
-            flex-direction: column;
-            gap: 1.5rem;
-            padding: 2rem 1.5rem;
-          }
-
-          .reports-header h1 {
-            font-size: 2rem;
-          }
-
-          .header-actions {
-            width: 100%;
-          }
-
-          .action-btn {
-            flex: 1;
-            justify-content: center;
-          }
-
-          .reports-grid {
-            grid-template-columns: 1fr;
-            padding: 0 1.5rem;
-          }
-
-          .section-title {
-            padding: 0 1.5rem;
-          }
-
-          .nav-items {
-            display: none;
-          }
+        .load-more-btn:hover {
+          background: var(--bg-elevated);
+          transform: translateY(-1px);
         }
       `}</style>
     </div>

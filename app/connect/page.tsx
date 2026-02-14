@@ -18,7 +18,7 @@ import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
 import { generateFintechData } from "@/components/data/DataGenerator";
 import TextType from "@/components/interactive/TextType";
-import PillNav from "@/components/interactive/PillNav";
+import GlobalHeader from "@/components/layout/GlobalHeader";
 import { useDataStore } from "@/store/dataStore";
 import type { DataDNA } from "@/store/dataStore";
 
@@ -196,21 +196,7 @@ export default function ConnectPage() {
   return (
     <div className="connect-page">
 
-      {/* GLOBAL NAVIGATION HEADER */}
-      <PillNav
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Workspace', href: '/workspace' },
-          { label: 'Reports', href: '/reports' },
-          { label: 'Support', href: '/support' }
-        ]}
-        activeHref="/"
-        baseColor="var(--fg)"
-        pillColor="var(--bg-surface)"
-        hoveredPillTextColor="var(--bg)"
-        pillTextColor="var(--fg)"
-        initialLoadAnimation={true}
-      />
+      <GlobalHeader />
 
       <div className="connect-container">
 
