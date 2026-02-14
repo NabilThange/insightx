@@ -206,15 +206,15 @@ export default function ReportsPage() {
         }
 
         .reports-content {
-          max-width: 1200px;
+          max-width: 1280px; /* Standardized max-width */
           margin: 0 auto;
           width: 100%;
-          padding: 2rem; /* Consistent padding */
+          padding: 2rem 2rem 4rem; /* Consistent padding */
           flex: 1;
         }
 
         .reports-section {
-          margin-bottom: 3rem;
+          margin-bottom: 2.5rem; /* Tighter section spacing */
         }
 
         .section-title {

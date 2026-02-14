@@ -29,10 +29,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         padding: '8px 12px',
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-        minWidth: '100px'
+        minWidth: '80px',
+        textAlign: 'left',
+        zIndex: 100,
+        pointerEvents: 'none'
       }}>
-        <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{label}</p>
-        <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 600, color: 'var(--fg)' }}>
+        <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', lineHeight: '1.2' }}>{label}</p>
+        <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 600, color: 'var(--fg)', lineHeight: '1.2' }}>
           {payload[0].value}
         </p>
       </div>

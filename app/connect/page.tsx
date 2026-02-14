@@ -462,8 +462,8 @@ export default function ConnectPage() {
           max-width: 600px;
           display: flex;
           flex-direction: column;
-          gap: 2rem;
-          margin-top: 2rem;
+          gap: 1.5rem; /* Reduced from 2rem for snappier feel */
+          margin-top: 1.5rem; /* Reduced from 2rem */
         }
 
 
@@ -472,7 +472,7 @@ export default function ConnectPage() {
         .hero-section {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1rem; /* Reduced from 1.5rem */
             width: 100%;
         }
 

@@ -215,8 +215,8 @@ export default function WorkspacePage() {
 
         /* WORKSPACE TOOLBAR - below GlobalHeader */
         .workspace-toolbar {
-          height: 3rem;
-          padding: 0 2rem;
+          height: 3.5rem; /* Increased for better touch/visual target */
+          padding: 0 2rem; /* Matches GlobalHeader */
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -320,7 +320,8 @@ export default function WorkspacePage() {
         .sidebar-section {
           display: flex;
           flex-direction: column;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1rem; /* Tighter spacing */
+          padding-top: 1rem;
         }
 
         .section-title {
@@ -341,13 +342,15 @@ export default function WorkspacePage() {
         }
 
         .thread-item {
-          padding: 0.75rem 1.25rem;
+          padding: 0.625rem 1rem; /* Tighter padding */
           display: flex;
           align-items: flex-start;
           gap: 0.75rem;
           cursor: pointer;
           transition: background 0.2s;
           border-left: 2px solid transparent;
+          margin: 0 0.5rem; /* Inset slightly */
+          border-radius: 4px;
         }
 
         .thread-item:hover {
