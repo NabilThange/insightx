@@ -191,8 +191,8 @@ export default function ConnectPage() {
                 transition={{ duration: 0.3 }}
               >
                 <div className="connect-header">
-                  <h1>The Bridge</h1>
-                  <h2>Connect your data to begin exploratory analysis</h2>
+                  <h1 className="hero-title">Ingest Your Data</h1>
+                  <p className="hero-subtitle">Upload your transaction logs to begin exploratory analysis</p>
                 </div>
 
                 {/* Data Source Tabs */}
@@ -208,8 +208,8 @@ export default function ConnectPage() {
                     className={`tab ${activeSource === "database" ? "active" : ""}`}
                     onClick={() => setActiveSource("database")}
                   >
-                    <Database size={20} />
-                    Connect Database
+                    <Database size={18} />
+                    Database
                   </button>
                   <button
                     className={`tab ${activeSource === "sample" ? "active" : ""}`}
@@ -446,18 +446,23 @@ export default function ConnectPage() {
 
         .connect-header {
           text-align: center;
-          margin-bottom: 3rem;
+          margin-bottom: 2rem;
+          max-width: 600px;
         }
 
-        .connect-header h1 {
-          font-size: 3rem;
-          margin-bottom: 1rem;
+        .hero-title {
+          font-size: 3.5rem;
+          font-weight: 500;
+          margin-bottom: 0.75rem;
           color: var(--fg);
+          letter-spacing: -0.02em;
         }
 
-        .connect-header h2 {
-          color: rgba(31, 31, 31, 0.7);
+        .hero-subtitle {
+          color: rgba(31, 31, 31, 0.6);
           font-weight: 400;
+          font-size: 1.125rem;
+          margin: 0;
         }
 
         .upload-container {
@@ -609,20 +614,22 @@ export default function ConnectPage() {
         }
 
         .continue-btn {
-          padding: 1rem 2rem;
-          background-color: var(--success);
-          color: white;
+          padding: 1rem 3rem;
+          background-color: var(--fg);
+          color: var(--bg);
           border: none;
-          border-radius: 0.375rem;
+          border-radius: 999px;
           font-family: inherit;
-          font-size: 1.125rem;
-          font-weight: 600;
+          font-size: 1rem;
+          font-weight: 500;
           cursor: pointer;
-          transition: all var(--transition-fast) ease;
+          transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .continue-btn:hover {
-          transform: scale(1.02);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
 
         .redirecting-container {

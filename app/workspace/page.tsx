@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Send, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Plus, MessageSquare, History, Search } from "lucide-react";
 import SuggestedQueryChips from "@/components/interactive/SuggestedQueryChips";
-import DatasetBadge from "@/components/interactive/DatasetBadge";
+import DataDNAPanel from "@/components/workspace/DataDNAPanel";
+import AgentMessage, { AgentType } from "@/components/workspace/AgentMessage";
 import { useDataStore } from "@/store/dataStore";
 import { useChatStore } from "@/store/chatStore";
 
@@ -14,6 +15,8 @@ export default function WorkspacePage() {
   const [input, setInput] = useState("");
   const { dataDNA } = useDataStore();
   const { createSession } = useChatStore();
+  const [messages, setMessages] = useState<any[]>([]); // Mock state for demo
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Redirect to /connect if no dataset loaded
   useEffect(() => {
@@ -22,25 +25,34 @@ export default function WorkspacePage() {
     }
   }, [dataDNA, router]);
 
-  // Generate suggested queries based on Data DNA
-  const suggestedQueries = dataDNA
-    ? [
-      `Why are failures high?`,
-      `Show ${dataDNA.patterns[0] || "transaction"} trends`,
-      `Analyze ${dataDNA.baselines.peakHours || "peak hours"}`,
-      `Compare payment methods`,
-    ]
-    : [];
-
   const handleSend = () => {
     if (!input.trim() || !dataDNA) return;
 
-    // Create new session
-    const sessionId = createSession(dataDNA.filename);
+    // Add user message
+    const userMsg = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
 
-    // Redirect to active session
-    router.push(`/workspace/${sessionId}`);
+    // Simulate AI response after delay
+    setTimeout(() => {
+      const aiMsg = {
+        role: "agent",
+        agentType: "orchestrator",
+        content: "I've analyzed the transaction failures. It appears to be network-related.",
+        insight: "Failed transactions are 45% more likely on 4G networks during peak hours (8-9 PM).",
+        recommendation: "Investigate the 4G gateway latency logs for that specific time window.",
+        context: "Filtered for 'failed' status and grouped by network_type."
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+    }, 1000);
   };
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleQueryClick = (query: string) => {
     setInput(query);
@@ -65,152 +77,149 @@ export default function WorkspacePage() {
           <a href="/">InsightX</a>
         </div>
         <div className="nav-items">
-          <a href="/workspace" className="active">
-            Workspace
-          </a>
+          <a href="/workspace" className="active">Workspace</a>
           <a href="/reports">Reports</a>
           <a href="/connect">Settings</a>
         </div>
         <div className="divider" />
       </nav>
 
-      {/* Sidebar */}
+      {/* Sidebar (Fixed Icons) */}
       <div className="sidebar">
         <div className="divider" />
       </div>
 
-      {/* Centered Content */}
-      <motion.div
-        className="centered-stage"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Dataset Badge - Top Right */}
-        <div className="dataset-badge-container">
-          <DatasetBadge filename={dataDNA.filename} rowCount={dataDNA.rowCount} />
+      {/* Main Layout Container */}
+      <div className="workspace-layout">
+
+        {/* Left Pane: History */}
+        <div className="history-panel">
+          <div className="panel-header">
+            <h3>History</h3>
+            <button className="icon-btn"><Plus size={16} /></button>
+          </div>
+          <div className="search-bar">
+            <Search size={14} />
+            <input type="text" placeholder="Search chats..." />
+          </div>
+          <div className="history-list custom-scrollbar">
+            <div className="history-item active">
+              <MessageSquare size={14} />
+              <div className="history-info">
+                <span className="history-title">Transaction Failures</span>
+                <span className="history-time">Just now</span>
+              </div>
+            </div>
+            <div className="history-item">
+              <MessageSquare size={14} />
+              <div className="history-info">
+                <span className="history-title">User Retention Analysis</span>
+                <span className="history-time">2h ago</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Main Content - Centered */}
-        <div className="content-wrapper">
-          <motion.div
-            className="header-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <h1>What do you want to explore?</h1>
-            <p className="subtitle">
-              Ask questions about your data. I'll analyze it using SQL and Python.
-            </p>
-          </motion.div>
+        {/* Center Pane: Chat */}
+        <div className="chat-panel">
+          <div className="chat-content custom-scrollbar" ref={scrollRef}>
+            {messages.length === 0 ? (
+              <div className="empty-state">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <h1>Analyze {dataDNA.filename}</h1>
+                  <SuggestedQueryChips
+                    queries={dataDNA.patterns.map(p => `Analyze ${p}`)}
+                    onQueryClick={handleQueryClick}
+                  />
+                </motion.div>
+              </div>
+            ) : (
+              <div className="message-list">
+                {messages.map((msg, i) => (
+                  msg.role === "user" ? (
+                    <div key={i} className="user-message">
+                      {msg.content}
+                    </div>
+                  ) : (
+                    <AgentMessage key={i} {...msg} />
+                  )
+                ))}
+              </div>
+            )}
+          </div>
 
-          <motion.div
-            className="input-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
+          <div className="input-area">
             <div className="input-container">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask a question about your data..."
-                rows={4}
-                autoFocus
+                placeholder="Ask a question..."
+                rows={1}
               />
-              <button
-                className="send-btn"
-                onClick={handleSend}
-                disabled={!input.trim()}
-              >
-                <Send size={20} />
+              <button className="send-btn" onClick={handleSend} disabled={!input.trim()}>
+                <Send size={18} />
               </button>
             </div>
-            <p className="hint">
-              Press <kbd>Enter</kbd> to send · <kbd>Shift + Enter</kbd> for new line
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="suggestions-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <p className="suggestions-label">Suggested queries:</p>
-            <SuggestedQueryChips
-              queries={suggestedQueries}
-              onQueryClick={handleQueryClick}
-            />
-          </motion.div>
+          </div>
         </div>
 
-        {/* New Chat Button - Bottom Left */}
-        <motion.button
-          className="new-chat-btn"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          onClick={() => router.push("/connect")}
-        >
-          <Plus size={20} />
-          <span>New Dataset</span>
-        </motion.button>
-      </motion.div>
+        {/* Right Pane: Data DNA */}
+        <div className="dna-panel-container">
+          <DataDNAPanel dataDNA={dataDNA} />
+        </div>
+
+      </div>
 
       <style jsx>{`
         .workspace-page {
-          position: relative;
-          width: 100%;
-          min-height: 100vh;
+          width: 100vw;
+          height: 100vh;
           background-color: var(--bg);
           color: var(--fg);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
         .workspace-nav {
-          position: relative;
-          width: 100%;
           height: 5rem;
-          padding: 1.5rem 1.5rem 1.5rem 7.5rem;
+          padding: 1rem 1.5rem 1rem 7.5rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-shrink: 0;
+          border-bottom: 1px solid var(--stroke);
+          background: var(--bg);
+          z-index: 20;
         }
 
         .logo-name a {
           font-size: 1.5rem;
+          font-weight: 600;
           color: var(--fg);
           text-decoration: none;
-          font-weight: 600;
         }
 
         .nav-items {
-          display: flex;
-          gap: 2rem;
+            display: flex;
+            gap: 2rem;
         }
-
+        
         .nav-items a {
-          color: rgba(31, 31, 31, 0.7);
-          text-decoration: none;
-          font-size: 1rem;
-          font-weight: 500;
-          transition: color var(--transition-fast) ease;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
         }
-
-        .nav-items a:hover,
-        .nav-items a.active {
-          color: var(--fg);
-        }
-
-        .workspace-nav .divider {
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          width: 100%;
-          height: 1px;
-          background-color: var(--stroke);
+        
+        .nav-items a.active, .nav-items a:hover {
+            color: var(--fg);
         }
 
         .sidebar {
@@ -219,200 +228,234 @@ export default function WorkspacePage() {
           left: 0;
           width: 5rem;
           height: 100vh;
-          z-index: 10;
+          border-right: 1px solid var(--stroke);
+          z-index: 30;
         }
 
-        .sidebar .divider {
-          position: absolute;
-          right: 0;
-          top: 0;
-          width: 1px;
-          height: 100vh;
-          background-color: var(--stroke);
+        .workspace-layout {
+            display: flex;
+            height: calc(100vh - 5rem);
+            margin-left: 5rem;
+            width: calc(100vw - 5rem);
         }
 
-        .centered-stage {
-          position: relative;
-          min-height: calc(100vh - 5rem);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem 7.5rem 3rem 7.5rem;
+        /* History Panel */
+        .history-panel {
+            width: 280px;
+            border-right: 1px solid var(--stroke);
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-surface);
         }
 
-        .dataset-badge-container {
-          position: absolute;
-          top: 2rem;
-          right: 2rem;
+        .panel-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .content-wrapper {
-          width: 100%;
-          max-width: 800px;
-          display: flex;
-          flex-direction: column;
-          gap: 3rem;
+        .panel-header h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 0;
         }
 
-        .header-section {
-          text-align: center;
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--fg);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+        .icon-btn:hover { background: var(--bg-elevated); }
+
+        .search-bar {
+            margin: 0 1.25rem 1rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--stroke);
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
         }
 
-        .header-section h1 {
-          font-size: 3rem;
-          font-weight: 600;
-          margin-bottom: 1rem;
-          color: var(--fg);
-          line-height: 1.2;
+        .search-bar input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 0.875rem;
+            width: 100%;
+            color: var(--fg);
         }
 
-        .subtitle {
-          font-size: 1.125rem;
-          color: rgba(31, 31, 31, 0.7);
-          line-height: 1.5;
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
-        .input-section {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
+        .history-item {
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 2px solid transparent;
+        }
+
+        .history-item:hover { background: var(--bg-base); }
+        .history-item.active { 
+            background: var(--bg-base);
+            border-left-color: var(--accent-blue);
+        }
+
+        .history-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+        }
+
+        .history-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--fg);
+        }
+
+        .history-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            position: relative;
+        }
+
+        .chat-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .empty-state h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            color: var(--fg);
+        }
+
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: var(--bg-elevated);
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem 1rem 0 1rem;
+            max-width: 80%;
+            font-size: 1rem;
+            color: var(--fg);
+        }
+
+        .input-area {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--stroke);
+            background: var(--bg);
         }
 
         .input-container {
-          position: relative;
-          display: flex;
-          gap: 0.75rem;
-          align-items: flex-end;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--bg-surface);
+            border: 1px solid var(--stroke);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+            display: flex;
+            align-items: flex-end;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .input-container:focus-within {
+            border-color: var(--fg);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
         .input-container textarea {
-          flex: 1;
-          padding: 1rem 1.25rem;
-          background-color: transparent;
-          border: 1px solid var(--stroke);
-          border-radius: 0.75rem;
-          font-family: inherit;
-          font-size: 1rem;
-          color: var(--fg);
-          resize: none;
-          line-height: 1.5;
-          transition: all var(--transition-fast) ease;
-        }
-
-        .input-container textarea:focus {
-          outline: none;
-          border-color: var(--accent);
-          background-color: var(--loader-bg);
-        }
-
-        .input-container textarea::placeholder {
-          color: rgba(31, 31, 31, 0.5);
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.75rem 1rem;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            font-size: 1rem;
+            max-height: 120px;
+            color: var(--fg);
         }
 
         .send-btn {
-          padding: 1rem;
-          background-color: var(--fg);
-          color: var(--bg);
-          border: none;
-          border-radius: 0.75rem;
-          cursor: pointer;
-          transition: all var(--transition-fast) ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .send-btn:hover:not(:disabled) {
-          transform: scale(1.02);
-        }
-
-        .send-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .hint {
-          text-align: center;
-          font-size: 0.875rem;
-          color: rgba(31, 31, 31, 0.7);
-        }
-
-        .hint kbd {
-          padding: 0.125rem 0.375rem;
-          background-color: var(--loader-bg);
-          border: 1px solid var(--stroke);
-          border-radius: 0.25rem;
-          font-family: "Geist Mono", "JetBrains Mono", monospace;
-          font-size: 0.75rem;
-        }
-
-        .suggestions-section {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          align-items: center;
-        }
-
-        .suggestions-label {
-          font-size: 0.875rem;
-          color: rgba(31, 31, 31, 0.7);
-          font-weight: 500;
-        }
-
-        .new-chat-btn {
-          position: absolute;
-          bottom: 2rem;
-          left: 7.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background-color: var(--bg);
-          border: 1px solid var(--stroke);
-          border-radius: 0.375rem;
-          color: var(--fg);
-          font-family: inherit;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all var(--transition-fast) ease;
-        }
-
-        .new-chat-btn:hover {
-          border-color: var(--success);
-          background-color: var(--loader-bg);
-        }
-
-        @media (max-width: 1000px) {
-          .centered-stage {
-            padding: 2rem 1.5rem 2rem 7.5rem;
-          }
-
-          .header-section h1 {
-            font-size: 2rem;
-          }
-
-          .subtitle {
-            font-size: 1rem;
-          }
-
-          .dataset-badge-container {
-            position: static;
-            margin-bottom: 2rem;
+            background: var(--fg);
+            color: var(--bg);
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
             display: flex;
+            align-items: center;
             justify-content: center;
-          }
-
-          .new-chat-btn {
-            left: 1.5rem;
-            bottom: 1.5rem;
-          }
-
-          .nav-items {
-            display: none;
-          }
         }
+        
+        .send-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Right Panel */
+        .dna-panel-container {
+            width: 320px;
+            flex-shrink: 0;
+            height: 100%;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--stroke); border-radius: 3px; }
       `}</style>
     </div>
   );
 }
+

@@ -5,88 +5,89 @@ import { Database, TrendingUp, Sparkles } from "lucide-react";
 import type { DataDNA } from "@/store/dataStore";
 
 interface DataDnaPreviewProps {
-    dataDNA: DataDNA;
+  dataDNA: DataDNA;
 }
 
 export default function DataDnaPreview({ dataDNA }: DataDnaPreviewProps) {
-    return (
-        <motion.div
-            className="dna-preview"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-        >
-            <div className="preview-header">
-                <Database size={24} />
-                <h3>Data DNA Generated</h3>
+  return (
+    <motion.div
+      className="dna-preview"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+    >
+      <div className="preview-header">
+        <Database size={24} />
+        <h3>Data DNA Generated</h3>
+      </div>
+
+      <div className="preview-grid">
+        {/* Dataset Overview */}
+        <div className="preview-section full-width">
+          <div className="stat-grid">
+            <div className="stat-item">
+              <span className="stat-label">Total Rows</span>
+              <span className="stat-value">{dataDNA.rowCount.toLocaleString()}</span>
             </div>
-
-            <div className="preview-grid">
-                {/* Dataset Overview */}
-                <div className="preview-section">
-                    <h4>
-                        <TrendingUp size={16} />
-                        Dataset Overview
-                    </h4>
-                    <div className="stat-grid">
-                        <div className="stat-item">
-                            <span className="stat-label">Rows</span>
-                            <span className="stat-value">{dataDNA.rowCount.toLocaleString()}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Columns</span>
-                            <span className="stat-value">{dataDNA.columnCount}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Uploaded</span>
-                            <span className="stat-value">
-                                {new Date(dataDNA.uploadDate).toLocaleDateString()}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Baselines */}
-                <div className="preview-section">
-                    <h4>
-                        <Sparkles size={16} />
-                        Key Baselines
-                    </h4>
-                    <div className="baseline-list">
-                        {Object.entries(dataDNA.baselines).map(([key, value]) => (
-                            <div key={key} className="baseline-item">
-                                <span className="baseline-label">
-                                    {key.replace(/([A-Z])/g, " $1").trim()}
-                                </span>
-                                <span className="baseline-value">{String(value)}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Detected Patterns */}
-                <div className="preview-section full-width">
-                    <h4>
-                        <Sparkles size={16} />
-                        Detected Patterns
-                    </h4>
-                    <div className="patterns-list">
-                        {dataDNA.patterns.map((pattern, index) => (
-                            <motion.div
-                                key={pattern}
-                                className="pattern-chip"
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: index * 0.05 }}
-                            >
-                                {pattern}
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
+            <div className="stat-item">
+              <span className="stat-label">Columns</span>
+              <span className="stat-value">{dataDNA.columnCount}</span>
             </div>
+            <div className="stat-item">
+              <span className="stat-label">Completeness</span>
+              {/* Calculate rough completeness based on sample columns for now, or use a fixed high value for the hackathon "trust" feel if real data isn't fully ready. 
+                                Since we have nullPercentage in columns, let's avg it. */}
+              <span className="stat-value">
+                {Math.round(100 - (dataDNA.columns.reduce((acc, col) => acc + col.nullPercentage, 0) / dataDNA.columns.length))}%
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Date Range</span>
+              <span className="stat-value">
+                {dataDNA.baselines.dateRange || "Jan 2024 - Present"}
+              </span>
+            </div>
+          </div>
+        </div>
 
-            <style jsx>{`
+        {/* Baselines */}
+        <div className="preview-section">
+          <h4>Key Baselines</h4>
+          <div className="baseline-list">
+            {Object.entries(dataDNA.baselines).filter(([key]) => key !== 'dateRange').map(([key, value]) => (
+              <div key={key} className="baseline-item">
+                <span className="baseline-label">
+                  {key.replace(/([A-Z])/g, " $1").trim()}
+                </span>
+                <span className="baseline-value">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Detected Patterns */}
+        <div className="preview-section full-width">
+          <h4>
+            <Sparkles size={16} />
+            Detected Patterns
+          </h4>
+          <div className="patterns-list">
+            {dataDNA.patterns.map((pattern, index) => (
+              <motion.div
+                key={pattern}
+                className="pattern-chip"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                {pattern}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
         .dna-preview {
           background-color: var(--bg-surface);
           border: 1px solid var(--border);
@@ -140,27 +141,32 @@ export default function DataDnaPreview({ dataDNA }: DataDnaPreviewProps) {
 
         .stat-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.5rem;
+          padding: 1.5rem;
+          background: var(--bg-base);
+          border-radius: 0.5rem;
+          border: 1px solid var(--stroke);
         }
 
         .stat-item {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.5rem;
         }
 
         .stat-label {
           font-size: 0.75rem;
-          color: var(--text-muted);
+          color: rgba(31, 31, 31, 0.6);
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          font-weight: 500;
         }
 
         .stat-value {
-          font-size: 1.5rem;
-          font-weight: 600;
-          color: var(--text-primary);
+          font-size: 1.25rem;
+          font-weight: 500;
+          color: var(--fg);
           font-family: "Geist Mono", "JetBrains Mono", monospace;
         }
 
@@ -218,6 +224,6 @@ export default function DataDnaPreview({ dataDNA }: DataDnaPreviewProps) {
           }
         }
       `}</style>
-        </motion.div>
-    );
+    </motion.div>
+  );
 }

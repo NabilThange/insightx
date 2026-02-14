@@ -135,15 +135,17 @@ export default function ReportCard({
 
         .metric-section {
           display: flex;
-          align-items: baseline;
-          gap: 0.75rem;
+          align-items: flex-end; /* Align to bottom for better baseline visual */
+          gap: 1rem;
+          margin-top: 0.5rem;
         }
 
         .metric {
-          font-size: 2rem;
-          font-weight: 600;
+          font-size: 2.5rem; /* Larger metric */
+          font-weight: 500;
           color: var(--fg);
           font-family: "Geist Mono", "JetBrains Mono", monospace;
+          line-height: 1;
         }
 
         .trend {
@@ -152,6 +154,10 @@ export default function ReportCard({
           gap: 0.25rem;
           font-size: 0.875rem;
           font-weight: 500;
+          padding: 0.25rem 0.5rem;
+          background: var(--bg-surface);
+          border-radius: 999px;
+          border: 1px solid currentColor; /* Use stroke color derived from text color */
         }
 
         .tags {
