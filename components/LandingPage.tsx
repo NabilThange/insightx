@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { Flip } from "gsap/Flip";
-import { SplitText } from "gsap/SplitText";
+import { Flip } from "gsap/dist/Flip";
+import { SplitText } from "gsap/dist/SplitText";
 import Image from "next/image";
 import Link from "next/link";
 
