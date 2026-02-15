@@ -1,53 +1,135 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import PillNav from '@/components/interactive/PillNav';
-import type { PillNavItem } from '@/components/interactive/PillNav';
-
-const MASTER_NAV_ITEMS: PillNavItem[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Connect', href: '/connect' },
-  { label: 'Workspace', href: '/workspace' },
-  { label: 'Reports', href: '/reports' },
-  { label: 'Contact', href: '/contact' },
-];
-
-function getNavItemsForPath(pathname: string): PillNavItem[] {
-  // Filter out the item that matches the current section
-  return MASTER_NAV_ITEMS.filter(item => {
-    if (item.href === '/' && pathname === '/') return false;
-    if (item.href !== '/' && pathname.startsWith(item.href)) return false;
-    return true;
-  });
-}
-
-function getActiveHref(pathname: string): string | undefined {
-  // Active state logic is now simplified since current page is removed from nav
-  // But we might want to keep it if we ever show the current page active in a different context
-  // For this specific request, the current page is NOT in the list, so activeHref is likely not needed 
-  // for the items in the list, unless there's a sub-page scenario.
-  // However, PillNav expects activeHref. Let's keep it consistent.
-  if (pathname === '/') return '/';
-  if (pathname.startsWith('/connect')) return '/connect';
-  if (pathname.startsWith('/workspace')) return '/workspace';
-  if (pathname.startsWith('/reports')) return '/reports';
-  if (pathname.startsWith('/contact')) return '/contact';
-  return undefined;
-}
 
 export default function GlobalHeader() {
   const pathname = usePathname();
-  const activeHref = getActiveHref(pathname);
+
+  // Do not show navbar on landing page, login page, or workspace pages
+  if (pathname === '/' || pathname === '/login' || pathname.startsWith('/workspace')) return null;
 
   return (
-    <PillNav
-      items={getNavItemsForPath(pathname)}
-      activeHref={activeHref}
-      baseColor="var(--fg)"
-      pillColor="var(--bg-surface)"
-      hoveredPillTextColor="var(--bg)"
-      pillTextColor="var(--fg)"
-      initialLoadAnimation={true}
-    />
+    <nav className="global-navbar">
+      <div className="logo-name">
+        <Link href="/">InsightX</Link>
+      </div>
+
+      <div className="nav-items">
+        <div className="links">
+          <Link href="/connect" className={pathname.startsWith('/connect') ? 'active' : ''}>Connect</Link>
+          <p>/</p>
+          <Link href="/workspace" className={pathname.startsWith('/workspace') ? 'active' : ''}>Workspace</Link>
+          <p>/</p>
+          <Link href="/reports" className={pathname.startsWith('/reports') ? 'active' : ''}>Reports</Link>
+          <p>/</p>
+          <Link href="/recents" className={pathname.startsWith('/recents') ? 'active' : ''}>Recents</Link>
+        </div>
+        <div className="cta">
+          <Link href="/login" className="login-btn">
+            Login
+          </Link>
+        </div>
+      </div>
+
+      <div className="divider" />
+
+      <style jsx>{`
+        .global-navbar {
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+          width: 100%;
+          height: 5rem;
+          padding: 1.5rem 1.5rem 1.5rem 7.5rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: var(--bg);
+        }
+
+        .logo-name :global(a) {
+          font-size: 1.5rem;
+          font-weight: 600;
+          letter-spacing: -0.05rem;
+          color: var(--fg);
+          text-decoration: none;
+        }
+
+        .nav-items {
+          display: flex;
+          align-items: center;
+          gap: 7.5rem;
+        }
+
+        .links {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .links :global(a) {
+          color: var(--fg);
+          text-decoration: none;
+          font-size: 1rem;
+          font-weight: 500;
+          opacity: 0.6;
+          transition: opacity 0.3s ease;
+        }
+
+        .links :global(a:hover),
+        .links :global(a.active) {
+          opacity: 1;
+        }
+
+        .links p {
+          color: var(--fg);
+          opacity: 0.3;
+          margin: 0;
+          font-weight: 400;
+        }
+
+        .login-btn {
+          padding: 0.75rem 1.5rem;
+          border: 1px solid var(--fg);
+          border-radius: 2rem;
+          font-size: 0.875rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05rem;
+          transition: all 0.3s ease;
+          display: inline-block;
+          line-height: 1;
+          color: var(--fg);
+          text-decoration: none;
+          font-weight: 500;
+        }
+
+        .login-btn:hover {
+          background-color: var(--fg);
+          color: var(--bg);
+        }
+
+        .divider {
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 100%;
+          height: 1px;
+          background-color: var(--stroke);
+        }
+
+        @media (max-width: 1000px) {
+          .global-navbar {
+            padding-left: 1.5rem;
+          }
+          .nav-items {
+            gap: 2rem;
+          }
+          .links {
+            gap: 0.25rem;
+          }
+        }
+      `}</style>
+    </nav>
   );
 }

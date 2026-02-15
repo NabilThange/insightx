@@ -1,0 +1,22 @@
+[21]{table_schema,table_name,column_name,ordinal_position,data_type,character_maximum_length,is_nullable,column_default,is_primary_key,foreign_table_schema,foreign_table_name,foreign_column_name,fk_constraint_name},
+  public,chats,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
+  public,chats,session_id,2,uuid,null,NO,null,NO,public,sessions,id,chats_session_id_fkey
+  public,chats,title,3,text,null,YES,null,NO,null,null,null,null
+  public,chats,created_at,4,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,messages,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
+  public,messages,chat_id,2,uuid,null,NO,null,NO,public,chats,id,messages_chat_id_fkey
+  public,messages,role,3,text,null,NO,null,NO,null,null,null,null
+  public,messages,content,4,text,null,NO,null,NO,null,null,null,null
+  public,messages,created_at,5,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,sessions,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
+  public,sessions,user_id,2,uuid,null,YES,null,NO,null,null,null,null
+  public,sessions,filename,3,text,null,NO,null,NO,null,null,null,null
+  public,sessions,row_count,4,integer,null,YES,null,NO,null,null,null,null
+  public,sessions,status,5,text,null,YES,'uploading',,text,NO,null,null,null,null
+  public,sessions,data_dna,6,jsonb,null,YES,null,NO,null,null,null,null
+  public,sessions,created_at,7,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,sessions,parquet_path,8,text,null,YES,null,NO,null,null,null,null
+  public,users,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
+  public,users,email,2,text,null,NO,null,NO,null,null,null,null
+  public,users,name,3,text,null,YES,null,NO,null,null,null,null
+  public,users,created_at,4,timestamp with time zone,null,YES,now(),NO,null,null,null,null

@@ -48,6 +48,7 @@ interface ChatState {
     setActiveSession: (sessionId: string) => void;
     addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
     updateMessage: (id: string, updates: Partial<Message>) => void;
+    updateSession: (id: string, updates: Partial<ChatSession>) => void;
     getSessionMessages: (sessionId: string) => Message[];
     setStreaming: (isStreaming: boolean, messageId?: string) => void;
     clearSession: (sessionId: string) => void;
@@ -121,6 +122,14 @@ export const useChatStore = create<ChatState>()(
                 set((state) => ({
                     messages: state.messages.map((msg) =>
                         msg.id === id ? { ...msg, ...updates } : msg
+                    ),
+                }));
+            },
+
+            updateSession: (id, updates) => {
+                set((state) => ({
+                    sessions: state.sessions.map((s) =>
+                        s.id === id ? { ...s, ...updates, updatedAt: new Date() } : s
                     ),
                 }));
             },

@@ -3,66 +3,70 @@
 import { motion } from "framer-motion";
 
 interface ColumnCardProps {
-    name: string;
-    type: "numeric" | "categorical" | "datetime" | "text";
-    nullPercentage: number;
-    sampleValues: string[];
-    index: number;
+  name: string;
+  type: "numeric" | "categorical" | "datetime" | "text" | "boolean" | "categorical_numeric";
+  nullPercentage: number;
+  sampleValues: string[];
+  index: number;
 }
 
-const typeColors = {
-    numeric: "var(--accent-green)",
-    categorical: "var(--accent-blue)",
-    datetime: "var(--accent-amber)",
-    text: "var(--text-muted)",
+const typeColors: Record<string, string> = {
+  numeric: "var(--accent-green)",
+  categorical: "var(--accent-blue)",
+  categorical_numeric: "var(--accent-blue)",
+  datetime: "var(--accent-amber)",
+  text: "var(--text-muted)",
+  boolean: "var(--accent-purple)",
 };
 
-const typeIcons = {
-    numeric: "#",
-    categorical: "◆",
-    datetime: "⏰",
-    text: "Aa",
+const typeIcons: Record<string, string> = {
+  numeric: "#",
+  categorical: "◆",
+  categorical_numeric: "◆",
+  datetime: "⏰",
+  text: "Aa",
+  boolean: "?",
 };
 
 export default function ColumnCard({
-    name,
-    type,
-    nullPercentage,
-    sampleValues,
-    index,
+  name,
+  type,
+  nullPercentage,
+  sampleValues,
+  index,
 }: ColumnCardProps) {
-    return (
-        <motion.div
-            className="column-card"
-            initial={{ opacity: 0, rotateY: -90, scale: 0.8 }}
-            animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-            transition={{
-                duration: 0.4,
-                delay: index * 0.1,
-                ease: [0.23, 1, 0.32, 1],
-            }}
-        >
-            <div className="card-header">
-                <div className="type-badge" style={{ color: typeColors[type] }}>
-                    <span className="type-icon">{typeIcons[type]}</span>
-                    <span className="type-label">{type}</span>
-                </div>
-                {nullPercentage > 0 && (
-                    <div className="null-badge">{nullPercentage}% null</div>
-                )}
-            </div>
+  return (
+    <motion.div
+      className="column-card"
+      initial={{ opacity: 0, rotateY: -90, scale: 0.8 }}
+      animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+      transition={{
+        duration: 0.4,
+        delay: index * 0.1,
+        ease: [0.23, 1, 0.32, 1],
+      }}
+    >
+      <div className="card-header">
+        <div className="type-badge" style={{ color: typeColors[type] || typeColors.text }}>
+          <span className="type-icon">{typeIcons[type] || typeIcons.text}</span>
+          <span className="type-label">{type}</span>
+        </div>
+        {nullPercentage > 0 && (
+          <div className="null-badge">{nullPercentage}% null</div>
+        )}
+      </div>
 
-            <h4 className="column-name">{name}</h4>
+      <h4 className="column-name">{name}</h4>
 
-            <div className="sample-values">
-                {sampleValues.slice(0, 3).map((value, i) => (
-                    <div key={i} className="sample-value">
-                        {value}
-                    </div>
-                ))}
-            </div>
+      <div className="sample-values">
+        {sampleValues.slice(0, 3).map((value, i) => (
+          <div key={i} className="sample-value">
+            {value}
+          </div>
+        ))}
+      </div>
 
-            <style jsx>{`
+      <style jsx>{`
         .column-card {
           background-color: var(--bg-surface);
           border: 1px solid var(--border);
@@ -133,6 +137,6 @@ export default function ColumnCard({
           font-family: "Geist Mono", "JetBrains Mono", monospace;
         }
       `}</style>
-        </motion.div>
-    );
+    </motion.div>
+  );
 }

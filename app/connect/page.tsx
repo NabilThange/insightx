@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,9 +18,15 @@ import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
 import { generateFintechData } from "@/components/data/DataGenerator";
 import TextType from "@/components/interactive/TextType";
-import GlobalHeader from "@/components/layout/GlobalHeader";
+
 import { useDataStore } from "@/store/dataStore";
 import type { DataDNA } from "@/store/dataStore";
+import {
+  uploadFile,
+  exploreSession,
+  pollSessionUntilReady,
+  formatSessionToDataDNA,
+} from "@/lib/api/backend";
 
 type UploadState = "idle" | "scanning" | "preview" | "redirecting";
 type DataSource = "upload" | "database" | "sample";
@@ -36,6 +42,18 @@ export default function ConnectPage() {
   const [dragActive, setDragActive] = useState(false);
 
   const { setDataDNA } = useDataStore();
+
+  // Handle redirection after countdown
+  useEffect(() => {
+    if (uploadState === "redirecting") {
+      if (countdown > 0) {
+        const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+        return () => clearTimeout(timer);
+      } else {
+        router.push("/workspace/insight-alpha-101");
+      }
+    }
+  }, [uploadState, countdown, router]);
 
   // Mock data generation (in real app, this would be backend processing)
   const generateMockDNA = (filename: string): DataDNA => {
@@ -114,15 +132,49 @@ export default function ConnectPage() {
     };
   };
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (!file) return;
 
     setUploadedFile(file);
     setUploadState("scanning");
 
-    // Generate mock DNA
-    const dna = generateMockDNA(file.name);
-    setGeneratedDNA(dna);
+    try {
+      console.log("Starting upload...");
+      console.log("API URL:", process.env.NEXT_PUBLIC_API_URL || "https://insightx-bkend.onrender.com/api");
+
+      // 1. Upload file to backend
+      const uploadResponse = await uploadFile(file);
+      console.log("Upload response:", uploadResponse);
+
+      // Store session_id in localStorage
+      localStorage.setItem("current_session_id", uploadResponse.session_id);
+
+      // 2. Trigger exploration
+      console.log("Triggering exploration...");
+      await exploreSession(uploadResponse.session_id);
+
+      // 3. Poll until ready and get Data DNA
+      console.log("Polling for ready status...");
+      const session = await pollSessionUntilReady(
+        uploadResponse.session_id,
+        (status) => console.log("Session status:", status)
+      );
+
+      console.log("Session ready:", session);
+
+      // Convert backend Data DNA to frontend format
+      const dna = formatSessionToDataDNA(session);
+
+      setGeneratedDNA(dna);
+
+      // Store in Zustand for backward compatibility
+      setDataDNA(dna);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      console.error("Error details:", error instanceof Error ? error.message : String(error));
+      alert(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}. Please check console for details.`);
+      setUploadState("idle");
+    }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,24 +198,23 @@ export default function ConnectPage() {
     setUploadState("preview");
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!generatedDNA) return;
 
-    // Save to store
-    setDataDNA(generatedDNA);
+    try {
+      // Get session_id from localStorage
+      const sessionId = localStorage.getItem("current_session_id");
 
-    // Start countdown
-    setUploadState("redirecting");
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          router.push("/workspace");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      if (!sessionId) {
+        throw new Error("No session ID found");
+      }
+
+      // Redirect to workspace with real session ID
+      router.push(`/workspace/${sessionId}`);
+    } catch (error) {
+      console.error("Failed to continue:", error);
+      alert("Failed to continue. Please try again.");
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -196,7 +247,7 @@ export default function ConnectPage() {
   return (
     <div className="connect-page">
 
-      <GlobalHeader />
+      {/* GlobalHeader is now persistent in RootLayout */}
 
       <div className="connect-container">
 
@@ -210,14 +261,14 @@ export default function ConnectPage() {
           <div className="hero-content">
             <h1 className="hero-title">
               <TextType
-                text="Ingest Your Data"
+                text="The Bridge"
                 typingSpeed={75}
                 loop={false}
                 showCursor={false}
                 as="span"
               />
             </h1>
-            <p className="hero-subtitle">Upload your transaction logs to begin exploratory analysis</p>
+            <p className="hero-subtitle">Connect your data to begin exploratory analysis</p>
           </div>
 
           <div className="action-tabs">
@@ -234,14 +285,14 @@ export default function ConnectPage() {
                 onClick={() => setActiveSource("database")}
               >
                 <Database size={18} />
-                Database
+                Connect Database
               </button>
               <button
                 className={`tab ${activeSource === "sample" ? "active" : ""}`}
                 onClick={() => setActiveSource("sample")}
               >
                 <FileSpreadsheet size={18} />
-                Sample
+                Sample Dataset
               </button>
             </div>
           </div>
@@ -293,12 +344,10 @@ export default function ConnectPage() {
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <div className="upload-header">
-                          <div className="icon-badge">
-                            <UploadCloud size={24} />
-                          </div>
+                          <Upload size={64} className="upload-icon-large" strokeWidth={1.2} />
                           <div className="upload-prompts">
                             <p className="primary-text">Drop your CSV file here</p>
-                            <p className="secondary-text">or <span className="browse-link">click to browse</span></p>
+                            <p className="secondary-text">or click to browse</p>
                           </div>
                         </div>
 
@@ -459,97 +508,98 @@ export default function ConnectPage() {
 
         .connect-container {
           width: 100%;
-          max-width: 600px;
+          max-width: 900px;
           display: flex;
           flex-direction: column;
-          gap: 1.5rem; /* Reduced from 2rem for snappier feel */
-          margin-top: 1.5rem; /* Reduced from 2rem */
+          gap: var(--space-xl);
+          margin-top: var(--space-2xl);
+          padding: 0 var(--space-lg);
         }
-
-
 
         /* HERO SECTION */
         .hero-section {
             display: flex;
             flex-direction: column;
-            gap: 1rem; /* Reduced from 1.5rem */
+            gap: var(--space-lg);
             width: 100%;
+            align-items: center;
         }
 
         .hero-content {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: var(--space-sm);
+            align-items: center;
+            text-align: center;
         }
 
         .hero-title {
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: 500;
             color: var(--fg);
-            letter-spacing: -0.02em;
+            letter-spacing: -0.04em;
             margin: 0;
-            line-height: 1.1;
+            line-height: 1;
         }
 
         .hero-subtitle {
-            font-size: 1rem;
-            color: rgba(31, 31, 31, 0.6);
+            font-size: 1.25rem;
+            color: var(--text-muted);
             margin: 0;
             font-weight: 400;
-            line-height: 1.5;
+            letter-spacing: -0.01em;
+            line-height: 1.4;
         }
 
         .action-tabs {
             width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: var(--space-md);
         }
 
         .source-tabs {
             display: flex;
-            gap: 0.5rem;
-            width: 100%;
+            gap: var(--space-sm);
+            background: var(--loader-bg);
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
         }
 
         .tab {
-            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 0.625rem;
+            gap: 0.625rem;
+            padding: 0.625rem 1.25rem;
             background: transparent;
-            border: 1px solid var(--stroke);
-            border-radius: 0.5rem;
-            color: rgba(31,31,31,0.6);
+            border: 1px solid transparent;
+            border-radius: calc(var(--radius-md) - 0.25rem);
+            color: var(--text-muted);
             font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            transition: all var(--transition-medium) cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
         }
 
         .tab:hover {
-            border-color: var(--fg);
             color: var(--fg);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(31, 31, 31, 0.08);
         }
 
         .tab.active {
             background-color: var(--fg);
             color: var(--bg);
             border-color: var(--fg);
-            box-shadow: 0 2px 12px rgba(31, 31, 31, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
-        .tab.active:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(31, 31, 31, 0.2);
-        }
-
         .section-divider {
             width: 100%;
             height: 1px;
-            background-color: var(--stroke-subtle);
+            background-color: var(--stroke);
+            opacity: 0.5;
+            margin-top: var(--space-lg);
         }
 
         /* ZONE 2: INTERACTION */
@@ -558,96 +608,77 @@ export default function ConnectPage() {
         }
 
         .upload-zone {
-            background-color: var(--bg-surface);
-            border: 1px dashed var(--stroke);
-            border-radius: 0.75rem;
+            background-color: transparent;
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%231f1f1f22' stroke-width='1.5' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all var(--transition-medium) cubic-bezier(0.2, 0, 0.2, 1);
             cursor: pointer;
             width: 100%;
             position: relative;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .upload-zone:hover {
-            border-color: var(--fg);
-            box-shadow: 0 4px 16px rgba(31, 31, 31, 0.06);
-            transform: translateY(-2px);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%231f1f1f44' stroke-width='1.5' stroke-dasharray='8%2c 4' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            background-color: rgba(31, 31, 31, 0.02);
         }
 
         .upload-zone.scanning-mode {
-             border-style: solid;
+             background-image: none;
+             border: 1px solid var(--stroke);
              cursor: default;
-             border-color: var(--stroke);
-             box-shadow: 0 2px 12px rgba(31, 31, 31, 0.04);
         }
         
         .upload-zone.scanning-mode:hover {
-             transform: none;
+             background-color: transparent;
         }
 
         .stage-inner-content {
-            padding: 2.5rem 2rem;
+            padding: var(--space-xl) var(--space-lg);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1.5rem;
+            gap: var(--space-lg);
             width: 100%;
-            min-height: 220px;
+            min-height: 400px;
         }
 
-        /* Upload Specifics */
         .upload-header {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1rem;
+            gap: var(--space-lg);
         }
 
-        .icon-badge {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background-color: var(--bg);
-            border: 1px solid var(--stroke);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .upload-icon-large {
             color: var(--fg);
-            transition: all 0.3s ease;
-        }
-        
-        .upload-zone:hover .icon-badge {
-            border-color: var(--fg);
-            box-shadow: 0 4px 12px rgba(31, 31, 31, 0.08);
+            opacity: 0.8;
         }
 
         .upload-prompts {
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
         }
 
         .primary-text {
-            font-size: 0.9375rem;
+            font-size: 1.5rem;
             font-weight: 500;
             color: var(--fg);
-            margin: 0 0 0.25rem 0;
+            margin: 0;
+            letter-spacing: -0.02em;
         }
 
         .secondary-text {
-            font-size: 0.875rem;
-            color: rgba(31,31,31,0.5);
+            font-size: 1.125rem;
+            color: var(--text-muted);
             margin: 0;
-        }
-
-        .browse-link {
-            text-decoration: underline;
-            color: var(--fg);
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-        }
-        
-        .browse-link:hover {
-            opacity: 0.7;
         }
 
         .upload-meta {
@@ -656,7 +687,7 @@ export default function ConnectPage() {
             align-items: center;
             gap: 0.5rem;
             font-size: 0.75rem;
-            color: rgba(31,31,31,0.4);
+            color: var(--text-muted);
             font-weight: 500;
             padding-top: 1rem;
             border-top: 1px dashed var(--stroke);
@@ -670,17 +701,18 @@ export default function ConnectPage() {
         .database-form {
              background-color: var(--bg-surface);
              border: 1px solid var(--stroke);
-             border-radius: 0.75rem;
-             padding: 2rem;
+             border-radius: var(--radius-md);
+             padding: var(--space-xl);
              display: flex;
              flex-direction: column;
              align-items: center;
-             gap: 1.5rem;
-             transition: all 0.3s ease;
+             gap: var(--space-lg);
+             transition: all var(--transition-medium) ease;
+             width: 100%;
         }
         
         .database-form:hover {
-             box-shadow: 0 4px 16px rgba(31, 31, 31, 0.06);
+             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
         }
         
         .db-content h3 { margin: 0; font-size: 1rem; font-weight: 500; }
@@ -719,8 +751,8 @@ export default function ConnectPage() {
              text-align: center;
         }
         .sample-icon { color: var(--fg); opacity: 0.8; }
-        .sample-text h3 { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 500; }
-        .sample-text p { margin: 0; font-size: 0.875rem; color: rgba(31,31,31,0.6); max-width: 300px; line-height: 1.5; }
+        .sample-text h3 { margin: 0 0 var(--space-xs) 0; font-size: 1.25rem; font-weight: 500; }
+        .sample-text p { margin: 0; font-size: 1rem; color: var(--text-muted); max-width: 400px; line-height: 1.5; }
 
         /* Connect Button */
         .connect-btn {
@@ -751,48 +783,48 @@ export default function ConnectPage() {
              display: flex;
              align-items: center;
              justify-content: center;
-             gap: 0.75rem;
-             margin-top: 2rem;
-             opacity: 0.5;
-             transition: opacity 0.3s ease;
+             gap: var(--space-md);
+             margin-top: var(--space-xl);
+             opacity: 0.4;
+             transition: opacity var(--transition-fast) ease;
         }
         
         .process-strip:hover {
-             opacity: 0.7;
+             opacity: 0.8;
         }
 
         .step {
              display: flex;
              align-items: center;
-             gap: 0.375rem;
+             gap: 0.5rem;
              font-size: 0.75rem;
-             font-weight: 500;
+             font-weight: 600;
              color: var(--fg);
              text-transform: uppercase;
              letter-spacing: 0.05em;
         }
 
         .step-line {
-             width: 24px;
+             width: 32px;
              height: 1px;
              background-color: var(--stroke);
         }
         
         /* Snapshot/Preview Styles */
         .snapshot-panel {
-            margin-top: 1rem;
+            margin-top: var(--space-md);
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: var(--space-lg);
         }
         
         .snapshot-status {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: var(--space-sm);
             color: var(--success);
-            font-size: 0.875rem;
+            font-size: 1rem;
             font-weight: 500;
         }
         
@@ -809,21 +841,21 @@ export default function ConnectPage() {
             background-color: var(--fg);
             color: var(--bg);
             border: none;
-            padding: 1rem 2.5rem;
-            border-radius: 99px;
-            font-size: 1rem;
+            padding: 1rem 3rem;
+            border-radius: var(--radius-full);
+            font-size: 1.125rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all var(--transition-medium) cubic-bezier(0.4, 0, 0.2, 1);
             margin: 0 auto;
-            box-shadow: 0 4px 16px rgba(31, 31, 31, 0.15);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
         .continue-btn:hover { 
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(31, 31, 31, 0.25);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
         }
         .continue-btn:active {
             transform: translateY(-1px);
@@ -847,18 +879,12 @@ export default function ConnectPage() {
              margin: 0;
         }
 
-        @media (max-width: 640px) {
-           .source-tabs { flex-direction: column; }
-           .form-grid { grid-template-columns: 1fr; }
-           .form-grid input:nth-last-child(1) { grid-column: auto; }
-           .hero-title { font-size: 1.75rem; }
-           .connect-container { gap: 1.5rem; }
-           .page-header { 
-             flex-direction: column; 
-             align-items: flex-start; 
-             gap: 0.5rem;
-           }
-           .context-label { font-size: 0.6875rem; }
+        @media (max-width: 1000px) {
+           .hero-title { font-size: 2.25rem; }
+           .hero-subtitle { font-size: 1.125rem; }
+           .connect-container { gap: var(--space-lg); margin-top: var(--space-xl); }
+           .primary-text { font-size: 1.25rem; }
+           .secondary-text { font-size: 1rem; }
         }
       `}</style>
     </div>

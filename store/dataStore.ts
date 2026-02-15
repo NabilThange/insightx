@@ -8,20 +8,109 @@ export interface DataDNA {
     columnCount: number;
     uploadDate: Date;
 
+    // Data Health
+    health?: {
+        score: number;
+        grade: string;
+        completeness: number;
+        duplicateRows: number;
+        duplicatePct: number;
+        missingCells: number;
+        constantCols: string[];
+        allNullCols: string[];
+        highMissingCols: string[];
+        missingByCol: Record<string, number>;
+    };
+
+    // Missing Data Summary
+    missingSummary?: {
+        hasMissing: boolean;
+        affectedColumns: number;
+        affectedRows: number;
+        affectedRowsPct: number;
+        fullyEmptyRows: number;
+        coMissingPairs: { colA: string; colB: string; coMissingCount: number }[];
+    };
+
     // Schema information
     columns: {
         name: string;
-        type: 'numeric' | 'categorical' | 'datetime' | 'text';
+        type: 'numeric' | 'categorical' | 'datetime' | 'text' | 'boolean' | 'categorical_numeric';
+        dtype?: string;
         nullPercentage: number;
+        uniqueCount?: number;
+        outlierCount?: number;
         sampleValues: string[];
+        // Numeric specific
+        mean?: number;
+        median?: number;
+        std?: number;
+        min?: number;
+        max?: number;
+        iqr?: number;
+        skewness?: number;
+        kurtosis?: number;
+        zerosPct?: number;
+        outlierPct?: number;
+        outlierCountIqr?: number;
+        topValues?: string[];
+        topValuePct?: number;
+        entropy?: number;
+        isDominated?: boolean;
+        rareValues?: number;
+        // Date specific
+        minDate?: string;
+        maxDate?: string;
+        spanDays?: number;
+        peakHour?: number;
+        peakDay?: string;
+        medianGapDays?: number;
     }[];
+
+    // Outliers
+    outlierSummary?: {
+        column: string;
+        iqrOutliers: number;
+        iqrOutlierPct: number;
+        extremeOutliers: number;
+        lowerFence: number;
+        upperFence: number;
+        minOutlier?: number;
+        maxOutlier?: number;
+    }[];
+
+    // Correlations
+    correlations?: {
+        colA: string;
+        colB: string;
+        strength: string;
+        pearsonR: number;
+        spearmanR?: number;
+        direction?: string;
+        nonlinear?: boolean;
+    }[];
+
+    // Segment Breakdown
+    segmentBreakdown?: {
+        dimension: string;
+        metric: string;
+        data: any[];
+    }[];
+
+    // Datetime Info
+    datetimeInfo?: {
+        column: string;
+        peakHour: number;
+        peakDay: string;
+        peakMonth: number;
+        spanDays: number;
+        businessHoursPct: number;
+        hourDistribution: Record<string, number>;
+        dayDistribution: Record<string, number>;
+    };
 
     // Baselines
     baselines: {
-        avgValue?: number;
-        successRate?: number;
-        peakHours?: string;
-        dateRange?: string;
         [key: string]: any;
     };
 
@@ -30,6 +119,9 @@ export interface DataDNA {
 
     // Pre-loaded insights
     insights: string[];
+
+    // Accumulated insights
+    accumulatedInsights?: string[];
 }
 
 interface DataState {

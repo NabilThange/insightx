@@ -6,42 +6,41 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Copy, Check } from "lucide-react";
 
 interface CodeBlockProps {
-    code: string;
-    language: "sql" | "python";
+  code: string;
+  language: string;
 }
 
 export default function CodeBlock({ code, language }: CodeBlockProps) {
-    const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(code);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-    return (
-        <div className="code-block">
-            <div className="code-header">
-                <span className="language-badge">{language.toUpperCase()}</span>
-                <button className="copy-btn" onClick={handleCopy}>
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                    <span>{copied ? "Copied!" : "Copy"}</span>
-                </button>
-            </div>
-            <SyntaxHighlighter
-                language={language}
-                style={vscDarkPlus}
-                customStyle={{
-                    margin: 0,
-                    borderRadius: "0 0 0.5rem 0.5rem",
-                    fontSize: "0.875rem",
-                    background: "var(--bg-base)",
-                }}
-            >
-                {code}
-            </SyntaxHighlighter>
+  return (
+    <div className="code-block">
+      <div className="code-header">
+        <span className="language-badge">{language.toUpperCase()}</span>
+        <button className="copy-btn" onClick={handleCopy}>
+          {copied ? <Check size={16} /> : <Copy size={16} />}
+          <span>{copied ? "Copied!" : "Copy"}</span>
+        </button>
+      </div>
+      <SyntaxHighlighter
+        language={language}
+        style={vscDarkPlus}
+        customStyle={{
+          margin: 0,
+          borderRadius: "0 0 0.5rem 0.5rem",
+          fontSize: "0.875rem",
+        }}
+      >
+        {code}
+      </SyntaxHighlighter>
 
-            <style jsx>{`
+      <style jsx>{`
         .code-block {
           margin: 0.75rem 0;
           border: 1px solid var(--border);
@@ -85,6 +84,6 @@ export default function CodeBlock({ code, language }: CodeBlockProps) {
           color: var(--text-primary);
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 }

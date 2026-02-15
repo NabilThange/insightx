@@ -1,318 +1,390 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
-import ContextSidebar from "@/components/layout/ContextSidebar";
-import ArtifactPanel from "@/components/layout/ArtifactPanel";
-import ChatTimeline from "@/components/chat/ChatTimeline";
-import ChatInput from "@/components/chat/ChatInput";
-import UserMessage from "@/components/chat/UserMessage";
-import AgentMessage from "@/components/chat/AgentMessage";
-import FollowUpSuggester from "@/components/interactive/FollowUpSuggester";
-import FeedbackButtons from "@/components/interactive/FeedbackButtons";
-import { useChatStore } from "@/store/chatStore";
-import { useDataStore } from "@/store/dataStore";
-import { useWorkspaceStore } from "@/store/workspaceStore";
+import { useState, useEffect, useRef, use, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import ChatPanel from "@/components/workspace/ChatPanel";
+import WorkspaceRightSidebar from "@/components/workspace/WorkspaceRightSidebar";
+import WorkspaceLayout from "@/components/workspace/WorkspaceLayout";
+import { SidebarProvider } from "@/components/ui/sidebar";
+
+import {
+  getSession,
+  getMessages,
+  createMessage,
+  chatStream,
+  formatSessionToDataDNA,
+} from "@/lib/api/backend";
+import {
+  getChatsFromSupabase,
+  createChatInSupabase,
+  subscribeToChats,
+} from "@/lib/api/chats";
 import type { Message } from "@/store/chatStore";
 
-export default function ActiveWorkspacePage({ params }: { params: { id: string } }) {
+export default function ActiveWorkspacePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
-  const sessionId = params.id;
+  const searchParams = useSearchParams();
+  const { id: workspaceId } = use(params);
+  const chatIdFromUrl = searchParams.get("chat");
 
-  const { sessions, getSessionMessages, addMessage, setStreaming, isStreaming } =
-    useChatStore();
-  const { dataDNA } = useDataStore();
-  const {
-    isLeftSidebarOpen,
-    isRightPanelOpen,
-    toggleLeftSidebar,
-    toggleRightPanel,
-    setWorkspaceMode,
-  } = useWorkspaceStore();
-
+  const [input, setInput] = useState("");
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [chats, setChats] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<any>(null);
 
-  // Set workspace mode to active
-  useEffect(() => {
-    setWorkspaceMode("active");
-  }, [setWorkspaceMode]);
-
-  // Load messages for this session
-  useEffect(() => {
-    const sessionMessages = getSessionMessages(sessionId);
-    setMessages(sessionMessages);
-  }, [sessionId, getSessionMessages]);
-
-  // Redirect if no dataset
-  useEffect(() => {
-    if (!dataDNA) {
-      router.push("/connect");
+  // Load session and chats
+  const loadChats = async (sessionId: string) => {
+    try {
+      const sessionChats = await getChatsFromSupabase(sessionId);
+      console.log("[ActiveWorkspacePage] Loaded chats from Supabase:", sessionChats);
+      setChats(sessionChats);
+      return sessionChats;
+    } catch (error) {
+      console.error("Failed to load chats:", error);
+      return [];
     }
-  }, [dataDNA, router]);
-
-  // Mock agent response generator
-  const generateMockResponse = (userQuery: string): Message => {
-    return {
-      id: `msg_${Date.now()}`,
-      sessionId,
-      type: "orchestrator",
-      content: `Based on your question "${userQuery}", I've analyzed the data and found some interesting patterns.`,
-      thinking: [
-        "Analyzing user query...",
-        "Routing to SQL Agent...",
-        "Executing query...",
-        "Processing results...",
-      ],
-      code: {
-        sql: `SELECT 
-  payment_method,
-  COUNT(*) as transaction_count,
-  AVG(amount) as avg_amount,
-  SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failures
-FROM transactions
-WHERE timestamp >= '2024-01-01'
-GROUP BY payment_method
-ORDER BY transaction_count DESC;`,
-      },
-      insight: {
-        title: "Transaction Volume",
-        metric: "250,000",
-        trend: "up",
-        trendValue: "+15%",
-      },
-      timestamp: new Date(),
-    };
   };
 
-  const handleSendMessage = (content: string) => {
-    // Add user message
-    addMessage({
-      sessionId,
-      type: "user",
-      content,
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // workspaceId could be either session_id or chat_id
+        // First try to load as session
+        let session;
+        let sessionId = workspaceId;
+
+        try {
+          session = await getSession(workspaceId);
+        } catch {
+          // If that fails, workspaceId might be a chat_id
+          // We need to get the session_id from somewhere
+          // For now, try localStorage
+          const storedSessionId = localStorage.getItem("current_session_id");
+          if (storedSessionId) {
+            session = await getSession(storedSessionId);
+            sessionId = storedSessionId;
+          } else {
+            throw new Error("Session not found");
+          }
+        }
+
+        setSessionData(session);
+
+        // Load chats for this session from Supabase
+        const sessionChats = await loadChats(sessionId);
+
+        // Determine active chat
+        if (chatIdFromUrl && sessionChats.some((c) => c.id === chatIdFromUrl)) {
+          setActiveChatId(chatIdFromUrl);
+        } else if (sessionChats.length > 0) {
+          setActiveChatId(sessionChats[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load workspace:", error);
+        router.push("/connect");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [workspaceId, chatIdFromUrl, router]);
+
+  // Subscribe to real-time chat updates
+  useEffect(() => {
+    if (!sessionData?.id) return;
+
+    const unsubscribe = subscribeToChats(sessionData.id, (updatedChats) => {
+      console.log("[ActiveWorkspacePage] Real-time update:", updatedChats);
+      setChats(updatedChats);
     });
 
-    // Simulate agent response
-    setStreaming(true);
-    setTimeout(() => {
-      const response = generateMockResponse(content);
-      addMessage(response);
-      setStreaming(false);
+    return () => {
+      unsubscribe();
+    };
+  }, [sessionData?.id]);
 
-      // Update local state
-      setMessages(getSessionMessages(sessionId));
-    }, 2000);
+  // Load messages when active chat changes
+  useEffect(() => {
+    async function loadMessages() {
+      if (!activeChatId) {
+        setMessages([]);
+        return;
+      }
+
+      try {
+        const chatMessages = await getMessages(activeChatId);
+        const formattedMessages: Message[] = chatMessages.map((msg) => {
+          // Parse content if it's a string (JSON)
+          let parsedContent = msg.content;
+          if (typeof msg.content === "string") {
+            try {
+              parsedContent = JSON.parse(msg.content);
+            } catch (e) {
+              // If parsing fails, keep as string
+              parsedContent = msg.content;
+            }
+          }
+
+          return {
+            id: msg.id,
+            sessionId: sessionData?.id || workspaceId,
+            type: msg.role === "user" ? "user" : "orchestrator",
+            content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+            timestamp: new Date(msg.created_at),
+          };
+        });
+        setMessages(formattedMessages);
+      } catch (error) {
+        console.error("Failed to load messages:", error);
+      }
+    }
+
+    loadMessages();
+  }, [activeChatId, sessionData, workspaceId]);
+
+  const handleSend = async () => {
+    if (!input.trim() || !sessionData) return;
+
+    try {
+      let chatId = activeChatId;
+
+      // Create first chat if none exists
+      if (!chatId) {
+        const newChat = await createChatInSupabase(
+          sessionData.id,
+          input.slice(0, 50)
+        );
+        chatId = newChat.id;
+        setActiveChatId(chatId);
+
+        // Reload chats from Supabase
+        await loadChats(sessionData.id);
+
+        // Update URL
+        router.push(`/workspace/${sessionData.id}?chat=${chatId}`);
+      }
+
+      // Save user message
+      await createMessage(chatId, "user", input);
+      const userInput = input;
+      setInput("");
+
+      // Reload messages to show user message
+      const updatedMessages = await getMessages(chatId);
+      setMessages(
+        updatedMessages.map((msg) => {
+          // Parse content if it's a string (JSON)
+          let parsedContent = msg.content;
+          if (typeof msg.content === "string") {
+            try {
+              parsedContent = JSON.parse(msg.content);
+            } catch (e) {
+              // If parsing fails, keep as string
+              parsedContent = msg.content;
+            }
+          }
+
+          return {
+            id: msg.id,
+            sessionId: sessionData.id,
+            type: msg.role === "user" ? "user" : "orchestrator",
+            content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+            timestamp: new Date(msg.created_at),
+          };
+        })
+      );
+
+      // Stream AI response via SSE
+      setIsStreaming(true);
+      let assistantContent = "";
+
+      try {
+        for await (const event of chatStream(
+          chatId,
+          sessionData.id,
+          userInput,
+          messages.map((m) => ({ role: m.type, content: m.content }))
+        )) {
+          console.log("[handleSend] Received event:", event.type);
+
+          if (event.type === "status") {
+            // Show thinking step
+            console.log("[handleSend] Status:", event.message);
+          } else if (event.type === "orchestrator_result") {
+            // Log classification
+            console.log("[handleSend] Classification:", event.data.classification);
+          } else if (event.type === "sql_result") {
+            // Show SQL execution
+            console.log("[handleSend] SQL executed:", event.data.query);
+          } else if (event.type === "python_result") {
+            // Show Python analysis
+            console.log("[handleSend] Python analysis:", event.data.results);
+          } else if (event.type === "final_response") {
+            // Extract text from final response
+            assistantContent = event.data.text || JSON.stringify(event.data);
+            console.log("[handleSend] Final response received");
+          } else if (event.type === "error") {
+            // Show error
+            console.error("[handleSend] Stream error:", event.message);
+            assistantContent = `Error: ${event.message}`;
+          }
+        }
+      } catch (streamError) {
+        console.error("[handleSend] Stream error:", streamError);
+        assistantContent = `Failed to get response: ${streamError}`;
+      }
+
+      setIsStreaming(false);
+
+      // Reload messages to show AI response
+      const finalMessages = await getMessages(chatId);
+      setMessages(
+        finalMessages.map((msg) => {
+          // Parse content if it's a string (JSON)
+          let parsedContent = msg.content;
+          if (typeof msg.content === "string") {
+            try {
+              parsedContent = JSON.parse(msg.content);
+            } catch (e) {
+              // If parsing fails, keep as string
+              parsedContent = msg.content;
+            }
+          }
+
+          return {
+            id: msg.id,
+            sessionId: sessionData.id,
+            type: msg.role === "user" ? "user" : "orchestrator",
+            content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+            timestamp: new Date(msg.created_at),
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      alert("Failed to send message. Please try again.");
+      setIsStreaming(false);
+    }
   };
 
-  const handleFollowUpClick = (suggestion: string) => {
-    handleSendMessage(suggestion);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
-  if (!dataDNA) {
-    return null; // Will redirect
+  const handleChatsUpdate = async () => {
+    if (sessionData?.id) {
+      await loadChats(sessionData.id);
+    }
+  };
+
+  // Memoize formatted Data DNA - MUST be before any early returns
+  const formattedDNA = useMemo(() => {
+    if (!sessionData) return null;
+    return formatSessionToDataDNA(sessionData);
+  }, [sessionData]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          background: "var(--bg)",
+          flexDirection: "column",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ fontSize: "1.5rem", color: "var(--fg)" }}>
+          Loading workspace...
+        </div>
+        <div style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>
+          Workspace ID: {workspaceId}
+        </div>
+      </div>
+    );
   }
 
-  const session = sessions.find((s) => s.id === sessionId);
+  // Error state - session not found
+  if (!sessionData) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          background: "var(--bg)",
+          flexDirection: "column",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ fontSize: "1.5rem", color: "var(--fg)" }}>
+          Session not found
+        </div>
+        <div style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>
+          The session you're looking for doesn't exist or has been deleted.
+        </div>
+        <button
+          onClick={() => router.push("/connect")}
+          style={{
+            padding: "0.75rem 1.5rem",
+            background: "var(--fg)",
+            color: "var(--bg)",
+            border: "none",
+            borderRadius: "0.5rem",
+            cursor: "pointer",
+            fontSize: "1rem",
+            marginTop: "1rem",
+          }}
+        >
+          Create New Session
+        </button>
+      </div>
+    );
+  }
+
+  const activeChat = chats.find((c) => c.id === activeChatId);
 
   return (
-    <div className="active-workspace">
-      {/* Navigation */}
-      <nav className="workspace-nav">
-        <div className="nav-left">
-          <button className="menu-btn" onClick={toggleLeftSidebar}>
-            {isLeftSidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
-          </button>
-          <div className="logo-name">
-            <a href="/">InsightX</a>
-          </div>
-        </div>
-        <div className="nav-center">
-          <h2 className="session-title">{session?.title || "New Analysis"}</h2>
-        </div>
-        <div className="nav-right">
-          <a href="/workspace">Workspace</a>
-          <a href="/reports">Reports</a>
-          <button className="panel-toggle" onClick={toggleRightPanel}>
-            {isRightPanelOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-          </button>
-        </div>
-        <div className="divider" />
-      </nav>
+    <SidebarProvider>
+      <WorkspaceLayout
+        sessionId={activeChatId || sessionData.id}
+        chatTitle={activeChat?.title || "New Analysis"}
+        chatId={activeChatId || undefined}
+        chats={chats}
+        onChatsUpdate={handleChatsUpdate}
+        onTitleUpdate={handleChatsUpdate}
+      >
+        {/* MAIN PANEL - CHAT INTERFACE */}
+        <ChatPanel
+          messages={messages}
+          dataDNA={formattedDNA}
+          input={input}
+          setInput={setInput}
+          handleSend={handleSend}
+          handleKeyDown={handleKeyDown}
+          isStreaming={isStreaming}
+          scrollRef={scrollRef}
+        />
 
-      {/* Sidebar */}
-      <div className="sidebar">
-        <div className="divider" />
-      </div>
-
-      {/* 3-Pane Layout */}
-      <div className="workspace-container">
-        {/* Left Panel - Context Sidebar */}
-        <ContextSidebar sessionId={sessionId} />
-
-        {/* Center Panel - Chat */}
-        <div className="center-panel">
-          <ChatTimeline messages={messages}>
-            {messages.map((message) => (
-              <div key={message.id}>
-                {message.type === "user" ? (
-                  <UserMessage content={message.content} />
-                ) : (
-                  <div>
-                    <AgentMessage message={message} />
-                    <FollowUpSuggester
-                      suggestions={[
-                        "Show breakdown by network type",
-                        "Compare with last month",
-                        "Identify peak failure times",
-                      ]}
-                      onSuggestionClick={handleFollowUpClick}
-                    />
-                    <FeedbackButtons messageId={message.id} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </ChatTimeline>
-          <ChatInput onSend={handleSendMessage} disabled={isStreaming} />
-        </div>
-
-        {/* Right Panel - Artifact Panel */}
-        <ArtifactPanel />
-      </div>
-
-      <style jsx>{`
-        .active-workspace {
-          position: relative;
-          width: 100%;
-          height: 100vh;
-          background-color: var(--bg-base);
-          color: var(--text-primary);
-          display: flex;
-          flex-direction: column;
-        }
-
-        .workspace-nav {
-          position: relative;
-          width: 100%;
-          height: 5rem;
-          padding: 1.5rem 1.5rem 1.5rem 7.5rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background-color: var(--bg-surface);
-          border-bottom: 1px solid var(--border);
-        }
-
-        .nav-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .menu-btn,
-        .panel-toggle {
-          background: none;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 0.25rem;
-          display: flex;
-          align-items: center;
-          transition: color var(--transition-fast) ease;
-        }
-
-        .menu-btn:hover,
-        .panel-toggle:hover {
-          color: var(--text-primary);
-        }
-
-        .logo-name a {
-          font-size: 1.5rem;
-          color: var(--text-primary);
-          text-decoration: none;
-          font-weight: 600;
-        }
-
-        .nav-center {
-          flex: 1;
-          display: flex;
-          justify-content: center;
-        }
-
-        .session-title {
-          font-size: 1rem;
-          font-weight: 500;
-          color: var(--text-primary);
-          margin: 0;
-        }
-
-        .nav-right {
-          display: flex;
-          align-items: center;
-          gap: 2rem;
-        }
-
-        .nav-right a {
-          color: var(--text-muted);
-          text-decoration: none;
-          font-size: 1rem;
-          font-weight: 500;
-          transition: color var(--transition-fast) ease;
-        }
-
-        .nav-right a:hover {
-          color: var(--text-primary);
-        }
-
-        .sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 5rem;
-          height: 100vh;
-          z-index: 10;
-        }
-
-        .sidebar .divider {
-          position: absolute;
-          right: 0;
-          top: 0;
-          width: 1px;
-          height: 100vh;
-          background-color: var(--border);
-        }
-
-        .workspace-container {
-          display: flex;
-          flex: 1;
-          overflow: hidden;
-          margin-left: 5rem;
-        }
-
-        .center-panel {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          background-color: var(--bg-base);
-          overflow: hidden;
-        }
-
-        @media (max-width: 1000px) {
-          .workspace-nav {
-            padding: 1.5rem 1.5rem 1.5rem 7.5rem;
-          }
-
-          .nav-right a {
-            display: none;
-          }
-
-          .session-title {
-            font-size: 0.875rem;
-          }
-        }
-      `}</style>
-    </div>
+        {/* RIGHT SIDEBAR - DATA PROFILING */}
+        {formattedDNA && <WorkspaceRightSidebar dataDNA={formattedDNA} />}
+      </WorkspaceLayout>
+    </SidebarProvider>
   );
 }

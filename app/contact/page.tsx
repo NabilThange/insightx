@@ -1,11 +1,11 @@
 "use client";
 
-import GlobalHeader from "@/components/layout/GlobalHeader";
+
 
 export default function ContactPage() {
   return (
     <div className="contact-page">
-      <GlobalHeader />
+      {/* GlobalHeader is persistent in RootLayout */}
       <main className="contact-content">
         <h1>Contact</h1>
         <p className="contact-subtitle">Get in touch with the InsightX team.</p>

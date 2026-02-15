@@ -144,7 +144,7 @@ export default function InsightCard({
 
             <div className="footer-bottom">
               <div className="tags-list">
-                {tags.slice(0, 2).map(tag => (
+                {tags && tags.length > 0 && tags.slice(0, 2).map(tag => (
                   <span key={tag} className="tag">#{tag}</span>
                 ))}
               </div>

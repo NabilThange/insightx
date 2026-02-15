@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import GlobalHeader from "@/components/layout/GlobalHeader";
+
 import ReportsHero from "@/components/layout/ReportsHero";
 import ReportsFilterBar from "@/components/interactive/ReportsFilterBar";
 import InsightCard from "@/components/data/InsightCard";
@@ -135,8 +135,7 @@ export default function ReportsPage() {
 
   return (
     <div className="reports-page-wrapper">
-      {/* Global Header handled inside page layout now */}
-      <GlobalHeader />
+      {/* GlobalHeader is persistent in RootLayout */}
 
       <main className="reports-content">
         <ReportsHero />

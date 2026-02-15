@@ -26,11 +26,11 @@ const PillNav: React.FC<PillNavProps> = ({
     items,
     activeHref,
     className = '',
-    ease = 'power3.easeOut',
-    baseColor = '#1f1f1f',
-    pillColor = '#f5f3ef',
-    hoveredPillTextColor = '#f5f3ef',
-    pillTextColor,
+    ease = 'power2.inOut',
+    baseColor = 'var(--bg)',
+    pillColor = 'var(--fg)',
+    hoveredPillTextColor = 'var(--fg)',
+    pillTextColor = 'var(--bg)',
     initialLoadAnimation = true
 }) => {
     const router = useRouter();
@@ -335,7 +335,7 @@ const PillNav: React.FC<PillNavProps> = ({
           font-weight: 600;
           color: var(--fg);
           cursor: pointer;
-          transition: opacity 0.2s;
+          transition: opacity var(--transition-fast);
           user-select: none;
         }
 
@@ -394,7 +394,7 @@ const PillNav: React.FC<PillNavProps> = ({
           white-space: nowrap;
           cursor: pointer;
           padding: 0;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
         .hover-circle {
@@ -474,7 +474,7 @@ const PillNav: React.FC<PillNavProps> = ({
           border-radius: 2px;
           background: var(--pill-bg);
           transform-origin: center;
-          transition: all 10ms cubic-bezier(0.25, 0.1, 0.25, 1);
+          transition: all var(--transition-fast) cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
         .mobile-menu {
@@ -512,7 +512,7 @@ const PillNav: React.FC<PillNavProps> = ({
           font-size: 1rem;
           font-weight: 500;
           border-radius: 50px;
-          transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+          transition: all var(--transition-fast) cubic-bezier(0.25, 0.1, 0.25, 1);
           background: var(--pill-bg);
           color: var(--pill-text);
           border: none;

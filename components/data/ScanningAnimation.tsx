@@ -12,7 +12,7 @@ interface ScanningAnimationProps {
   rowCount: number;
   columns: {
     name: string;
-    type: "numeric" | "categorical" | "datetime" | "text";
+    type: "numeric" | "categorical" | "datetime" | "text" | "boolean" | "categorical_numeric";
     nullPercentage: number;
     sampleValues: string[];
   }[];

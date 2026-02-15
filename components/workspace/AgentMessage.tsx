@@ -1,28 +1,30 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, Terminal, Database, Check } from "lucide-react";
-
-export type AgentType = "orchestrator" | "sql" | "python";
+import { Sparkles, Terminal, Database, Shield } from "lucide-react";
+import CodeBlock from "../data/CodeBlock";
+import InsightCard from "../data/InsightCard";
+import type { Message } from "@/store/chatStore";
 
 interface AgentMessageProps {
-    agentType: AgentType;
-    content: string;
-    insight?: string;
-    recommendation?: string;
-    context?: string;
+    message: Message;
 }
 
-export default function AgentMessage({ agentType, content, insight, recommendation, context }: AgentMessageProps) {
+export default function AgentMessage({ message }: AgentMessageProps) {
+    const { type, content, thinking, code, insight } = message;
 
     const getBadge = () => {
-        switch (agentType) {
+        switch (type) {
             case "orchestrator":
                 return { icon: <Sparkles size={14} />, text: "InsightX Lead", color: "var(--accent-purple)" };
             case "sql":
                 return { icon: <Database size={14} />, text: "SQL Analyst", color: "var(--accent-blue)" };
             case "python":
                 return { icon: <Terminal size={14} />, text: "Data Scientist", color: "var(--accent-green)" };
+            case "system":
+                return { icon: <Shield size={14} />, text: "System", color: "var(--fg)" };
+            default:
+                return { icon: <Sparkles size={14} />, text: "Agent", color: "var(--accent-purple)" };
         }
     };
 
@@ -43,33 +45,57 @@ export default function AgentMessage({ agentType, content, insight, recommendati
             </div>
 
             <div className="message-body">
+                {/* Thinking Process */}
+                {thinking && thinking.length > 0 && (
+                    <div className="thinking-process">
+                        {thinking.map((step, i) => (
+                            <div key={i} className="thinking-step">
+                                <span className="dot" />
+                                {step}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* Direct Answer */}
                 <div className="direct-answer">
                     {content}
                 </div>
 
-                {/* Structured Sections */}
-                {context && (
-                    <div className="message-section context">
-                        <span className="section-label">Context</span>
-                        <p>{context}</p>
+                {/* Code Blocks */}
+                {code?.sql && (
+                    <div className="message-section code-section">
+                        <span className="section-label">SQL Query</span>
+                        <CodeBlock code={code.sql} language="sql" />
                     </div>
                 )}
 
+                {code?.python && (
+                    <div className="message-section code-section">
+                        <span className="section-label">Python Script</span>
+                        <CodeBlock code={code.python} language="python" />
+                    </div>
+                )}
+
+                {/* Insight Card */}
                 {insight && (
-                    <div className="message-section insight">
+                    <div className="message-section insight-section">
                         <span className="section-label">
                             <Sparkles size={12} />
                             Key Insight
                         </span>
-                        <p>{insight}</p>
-                    </div>
-                )}
-
-                {recommendation && (
-                    <div className="message-section recommendation">
-                        <span className="section-label">Recommendation</span>
-                        <p>{recommendation}</p>
+                        <InsightCard
+                            id="insight-latest"
+                            title={insight.title}
+                            category="AI Analysis"
+                            timestamp="Just now"
+                            metric={insight.metric}
+                            trend={insight.trend || "neutral"}
+                            trendValue={insight.trendValue || "—"}
+                            chartType="line"
+                            chartData={[]}
+                            tags={["ai", "analysis"]}
+                        />
                     </div>
                 )}
             </div>
@@ -80,8 +106,8 @@ export default function AgentMessage({ agentType, content, insight, recommendati
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            padding: 1.5rem;
-            background-color: transparent; /* Seamless blend */
+            padding: 1rem 0;
+            background-color: transparent;
         }
 
         .message-header {
@@ -112,24 +138,40 @@ export default function AgentMessage({ agentType, content, insight, recommendati
             color: var(--fg);
         }
 
+        .thinking-process {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.75rem;
+            background: var(--bg-surface);
+            border-radius: 0.5rem;
+            border: 1px solid var(--stroke);
+            opacity: 0.7;
+        }
+
+        .thinking-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .thinking-step .dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--stroke);
+        }
+
         .direct-answer {
             font-weight: 400;
         }
 
         .message-section {
-            padding-left: 1rem;
-            border-left: 2px solid var(--stroke);
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .message-section.insight {
-            border-left-color: var(--accent-amber);
-            background: linear-gradient(to right, rgba(245, 158, 11, 0.05), transparent);
-            padding: 0.75rem 1rem;
-            border-radius: 0 0.5rem 0.5rem 0;
-            border-left-width: 3px;
+            gap: 0.75rem;
         }
 
         .section-label {
@@ -143,8 +185,11 @@ export default function AgentMessage({ agentType, content, insight, recommendati
             gap: 0.5rem;
         }
 
-        .message-section.insight .section-label {
-            color: var(--accent-amber);
+        .insight-section {
+            background: linear-gradient(to right, rgba(79, 70, 229, 0.05), transparent);
+            padding: 1rem;
+            border-left: 3px solid var(--accent-purple);
+            border-radius: 0 0.5rem 0.5rem 0;
         }
       `}</style>
         </motion.div>
