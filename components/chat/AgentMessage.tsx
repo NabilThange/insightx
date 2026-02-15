@@ -76,10 +76,11 @@ export default function AgentMessage({ message }: AgentMessageProps) {
         {message.insight && (
           <div className="insights-row">
             <InsightCard
+              id={message.insight.title}
               title={message.insight.title}
               metric={message.insight.metric}
-              trend={message.insight.trend}
-              trendValue={message.insight.trendValue}
+              trend={message.insight.trend ?? "neutral"}
+              trendValue={message.insight.trendValue ?? "—"}
             />
           </div>
         )}

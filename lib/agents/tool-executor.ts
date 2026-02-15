@@ -53,23 +53,23 @@ export class ToolExecutor {
 
       switch (toolName) {
         case 'read_data_dna':
-          result = await this.readDataDNA(args);
+          result = await this.readDataDNA(args as { sections?: string[] });
           break;
 
         case 'read_context':
-          result = await this.readContext(args);
+          result = await this.readContext(args as { query_type?: string });
           break;
 
         case 'write_context':
-          result = await this.writeContext(args);
+          result = await this.writeContext(args as { insight: any });
           break;
 
         case 'run_sql':
-          result = await this.runSQL(args);
+          result = await this.runSQL(args as { sql: string; limit?: number });
           break;
 
         case 'run_python':
-          result = await this.runPython(args);
+          result = await this.runPython(args as { code: string; timeout?: number });
           break;
 
         default:

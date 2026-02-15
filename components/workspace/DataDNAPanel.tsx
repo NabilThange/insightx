@@ -171,8 +171,8 @@ type TabId = typeof TABS[number]["id"];
 // ─── Section: Overview ────────────────────────────────────────────────────────
 
 function OverviewSection({ d }: { d: DataDNA }) {
-    const h = d.health || {};
-    const gradeColor = ({ A: T.success, B: "#16803c", C: T.warning, D: "#ea580c", F: T.error })[h.grade] ?? T.fg;
+    const h = (d.health || {}) as any;
+    const gradeColor = ({ A: T.success, B: "#16803c", C: T.warning, D: "#ea580c", F: T.error })[h.grade as string] ?? T.fg;
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -495,8 +495,8 @@ function ColumnsSection({ d }: { d: DataDNA }) {
 // ─── Section: Health ──────────────────────────────────────────────────────────
 
 function HealthSection({ d }: { d: DataDNA }) {
-    const h = d.health || {};
-    const ms = d.missingSummary || {};
+    const h = (d.health || {}) as any;
+    const ms = (d.missingSummary || {}) as any;
     const byCol = h.missingByCol || {};
 
     return (
@@ -924,7 +924,7 @@ function BaselinesSection({ d }: { d: DataDNA }) {
 // ─── Section: DateTime ────────────────────────────────────────────────────────
 
 function DatetimeSection({ d }: { d: DataDNA }) {
-    const dt = d.datetimeInfo || {};
+    const dt = (d.datetimeInfo || {}) as any;
     if (!dt.column) return <Empty msg="No datetime column detected." />;
 
     const hourDist = dt.hourDistribution || {};
@@ -1172,7 +1172,7 @@ export default function DataDNAPanel({ dataDNA }: DataDNAPanelProps) {
         </div>
     );
 
-    const h = dataDNA.health || {};
+    const h = (dataDNA.health || {}) as any;
     const gradeMap: Record<string, string> = { A: T.success, B: "#16803c", C: T.warning, D: "#ea580c", F: T.error };
     const gradeColor = gradeMap[h.grade] ?? T.fg;
 

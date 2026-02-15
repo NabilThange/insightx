@@ -8,15 +8,15 @@ import Link from "next/link";
 interface InsightCardProps {
   id: string;
   title: string;
-  category: string;
-  timestamp: string;
+  category?: string;
+  timestamp?: string;
   metric: string;
   trend: "up" | "down" | "neutral";
   trendValue: string;
-  chartType: "line" | "bar";
-  chartData: any[];
+  chartType?: "line" | "bar";
+  chartData?: any[];
   recommendation?: string;
-  tags: string[];
+  tags?: string[];
   index?: number;
 }
 
@@ -47,15 +47,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function InsightCard({
   id,
   title,
-  category,
-  timestamp,
+  category = "general",
+  timestamp = new Date().toISOString(),
   metric,
   trend,
   trendValue,
-  chartType,
-  chartData,
+  chartType = "bar",
+  chartData = [],
   recommendation,
-  tags,
+  tags = [],
   index = 0,
 }: InsightCardProps) {
 
@@ -107,30 +107,36 @@ export default function InsightCard({
 
           {/* GRAPH SECTION */}
           <div className="graph-container">
-            <ResponsiveContainer width="100%" height="100%">
-              {chartType === "line" ? (
-                <LineChart data={chartData}>
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--stroke)', strokeWidth: 1 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--fg)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: "var(--bg)", stroke: "var(--fg)", strokeWidth: 2 }}
-                  />
-                </LineChart>
-              ) : (
-                <BarChart data={chartData}>
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-elevated)', opacity: 0.5 }} />
-                  <Bar
-                    dataKey="value"
-                    fill="var(--fg)"
-                    radius={[2, 2, 0, 0]}
-                  />
-                </BarChart>
-              )}
-            </ResponsiveContainer>
+            {chartData && chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                {chartType === "line" ? (
+                  <LineChart data={chartData}>
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--stroke)', strokeWidth: 1 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--fg)"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: "var(--bg)", stroke: "var(--fg)", strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                ) : (
+                  <BarChart data={chartData}>
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-elevated)', opacity: 0.5 }} />
+                    <Bar
+                      dataKey="value"
+                      fill="var(--fg)"
+                      radius={[2, 2, 0, 0]}
+                    />
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="no-chart-data" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'center', padding: '1rem' }}>
+                No chart data available
+              </div>
+            )}
           </div>
 
           {/* FOOTER */}
@@ -144,7 +150,7 @@ export default function InsightCard({
 
             <div className="footer-bottom">
               <div className="tags-list">
-                {tags && tags.length > 0 && tags.slice(0, 2).map(tag => (
+                {tags.length > 0 && tags.slice(0, 2).map(tag => (
                   <span key={tag} className="tag">#{tag}</span>
                 ))}
               </div>

@@ -3,7 +3,7 @@
  * Builds conversation context for agents to maintain memory across turns
  */
 
-import { backendAPI } from '@/lib/api/backend';
+import { getSession } from '@/lib/api/backend';
 
 export class AgentContextBuilder {
   private sessionId: string;
@@ -19,7 +19,7 @@ export class AgentContextBuilder {
   async buildDynamicContext(): Promise<string> {
     try {
       // Fetch session data including Data DNA
-      const sessionData = await backendAPI.getSession(this.sessionId);
+      const sessionData = await getSession(this.sessionId);
       
       if (!sessionData) {
         return '';
@@ -120,7 +120,7 @@ Use the above context to inform your response. Reference previous findings when 
    */
   async buildSQLContext(): Promise<string> {
     try {
-      const sessionData = await backendAPI.getSession(this.sessionId);
+      const sessionData = await getSession(this.sessionId);
       
       if (!sessionData?.data_dna) {
         return '';
@@ -152,7 +152,7 @@ Use the above context to inform your response. Reference previous findings when 
    */
   async buildPythonContext(): Promise<string> {
     try {
-      const sessionData = await backendAPI.getSession(this.sessionId);
+      const sessionData = await getSession(this.sessionId);
       
       if (!sessionData?.data_dna) {
         return '';

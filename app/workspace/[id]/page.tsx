@@ -174,68 +174,74 @@ export default function ActiveWorkspacePage({
       }
 
       // Save user message
-      await createMessage(chatId, "user", input);
+      if (chatId) {
+        await createMessage(chatId, "user", input);
+      }
       const userInput = input;
       setInput("");
 
       // Reload messages to show user message
-      const updatedMessages = await getMessages(chatId);
-      setMessages(
-        updatedMessages.map((msg) => {
-          // Parse content if it's a string (JSON)
-          let parsedContent = msg.content;
-          if (typeof msg.content === "string") {
-            try {
-              parsedContent = JSON.parse(msg.content);
-            } catch (e) {
-              // If parsing fails, keep as string
-              parsedContent = msg.content;
+      if (chatId) {
+        const updatedMessages = await getMessages(chatId);
+        setMessages(
+          updatedMessages.map((msg) => {
+            // Parse content if it's a string (JSON)
+            let parsedContent = msg.content;
+            if (typeof msg.content === "string") {
+              try {
+                parsedContent = JSON.parse(msg.content);
+              } catch (e) {
+                // If parsing fails, keep as string
+                parsedContent = msg.content;
+              }
             }
-          }
 
-          return {
-            id: msg.id,
-            sessionId: sessionData.id,
-            type: msg.role === "user" ? "user" : "orchestrator",
-            content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
-            timestamp: new Date(msg.created_at),
-          };
-        })
-      );
+            return {
+              id: msg.id,
+              sessionId: sessionData.id,
+              type: msg.role === "user" ? "user" : "orchestrator",
+              content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+              timestamp: new Date(msg.created_at),
+            };
+          })
+        );
+      }
 
       // Stream AI response via SSE
       setIsStreaming(true);
       let assistantContent = "";
 
       try {
-        for await (const event of chatStream(
-          chatId,
-          sessionData.id,
-          userInput,
-          messages.map((m) => ({ role: m.type, content: m.content }))
-        )) {
-          console.log("[handleSend] Received event:", event.type);
+        if (chatId) {
+          for await (const event of chatStream(
+            chatId,
+            sessionData.id,
+            userInput,
+            messages.map((m) => ({ role: m.type, content: m.content }))
+          )) {
+            console.log("[handleSend] Received event:", event.type);
 
-          if (event.type === "status") {
-            // Show thinking step
-            console.log("[handleSend] Status:", event.message);
-          } else if (event.type === "orchestrator_result") {
-            // Log classification
-            console.log("[handleSend] Classification:", event.data.classification);
-          } else if (event.type === "sql_result") {
-            // Show SQL execution
-            console.log("[handleSend] SQL executed:", event.data.query);
-          } else if (event.type === "python_result") {
-            // Show Python analysis
-            console.log("[handleSend] Python analysis:", event.data.results);
-          } else if (event.type === "final_response") {
-            // Extract text from final response
-            assistantContent = event.data.text || JSON.stringify(event.data);
-            console.log("[handleSend] Final response received");
-          } else if (event.type === "error") {
-            // Show error
-            console.error("[handleSend] Stream error:", event.message);
-            assistantContent = `Error: ${event.message}`;
+            if (event.type === "status") {
+              // Show thinking step
+              console.log("[handleSend] Status:", event.message);
+            } else if (event.type === "orchestrator_result") {
+              // Log classification
+              console.log("[handleSend] Classification:", event.data.classification);
+            } else if (event.type === "sql_result") {
+              // Show SQL execution
+              console.log("[handleSend] SQL executed:", event.data.query);
+            } else if (event.type === "python_result") {
+              // Show Python analysis
+              console.log("[handleSend] Python analysis:", event.data.results);
+            } else if (event.type === "final_response") {
+              // Extract text from final response
+              assistantContent = event.data.text || JSON.stringify(event.data);
+              console.log("[handleSend] Final response received");
+            } else if (event.type === "error") {
+              // Show error
+              console.error("[handleSend] Stream error:", event.message);
+              assistantContent = `Error: ${event.message}`;
+            }
           }
         }
       } catch (streamError) {
@@ -246,29 +252,31 @@ export default function ActiveWorkspacePage({
       setIsStreaming(false);
 
       // Reload messages to show AI response
-      const finalMessages = await getMessages(chatId);
-      setMessages(
-        finalMessages.map((msg) => {
-          // Parse content if it's a string (JSON)
-          let parsedContent = msg.content;
-          if (typeof msg.content === "string") {
-            try {
-              parsedContent = JSON.parse(msg.content);
-            } catch (e) {
-              // If parsing fails, keep as string
-              parsedContent = msg.content;
+      if (chatId) {
+        const finalMessages = await getMessages(chatId);
+        setMessages(
+          finalMessages.map((msg) => {
+            // Parse content if it's a string (JSON)
+            let parsedContent = msg.content;
+            if (typeof msg.content === "string") {
+              try {
+                parsedContent = JSON.parse(msg.content);
+              } catch (e) {
+                // If parsing fails, keep as string
+                parsedContent = msg.content;
+              }
             }
-          }
 
-          return {
-            id: msg.id,
-            sessionId: sessionData.id,
-            type: msg.role === "user" ? "user" : "orchestrator",
-            content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
-            timestamp: new Date(msg.created_at),
-          };
-        })
-      );
+            return {
+              id: msg.id,
+              sessionId: sessionData.id,
+              type: msg.role === "user" ? "user" : "orchestrator",
+              content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+              timestamp: new Date(msg.created_at),
+            };
+          })
+        );
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
       alert("Failed to send message. Please try again.");

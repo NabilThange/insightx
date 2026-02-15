@@ -171,7 +171,7 @@ ORDER BY hour, failure_rate DESC;`,
                         <h2>Key Metrics</h2>
                         <div className="insights-grid">
                             {report.insights.map((insight, index) => (
-                                <InsightCard key={insight.title} {...insight} index={index} />
+                                <InsightCard key={insight.title} {...insight} index={index} id={insight.title} />
                             ))}
                         </div>
                     </div>

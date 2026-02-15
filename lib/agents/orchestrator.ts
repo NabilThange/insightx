@@ -302,8 +302,7 @@ export class AssemblyLineOrchestrator {
             await ChatService.addMessage({
               chat_id: this.chatId,
               role: 'assistant',
-              content: `SQL Query: ${sqlResult.content}\nResults: ${JSON.stringify(sqlResult.toolResults.run_sql)}`,
-              metadata: { agent: 'sql_agent', classification: classification.classification }
+              content: `SQL Query: ${sqlResult.content}\nResults: ${JSON.stringify(sqlResult.toolResults.run_sql)}`
             });
             console.log('✅ [Orchestrator] SQL agent output persisted to DB');
           } catch (dbError) {
@@ -330,8 +329,7 @@ export class AssemblyLineOrchestrator {
             await ChatService.addMessage({
               chat_id: this.chatId,
               role: 'assistant',
-              content: `Python Code: ${pythonResult.content}\nResults: ${JSON.stringify(pythonResult.toolResults.run_python)}`,
-              metadata: { agent: 'python_agent', classification: classification.classification }
+              content: `Python Code: ${pythonResult.content}\nResults: ${JSON.stringify(pythonResult.toolResults.run_python)}`
             });
             console.log('✅ [Orchestrator] Python agent output persisted to DB');
           } catch (dbError) {

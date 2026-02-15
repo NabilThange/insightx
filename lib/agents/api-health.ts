@@ -12,8 +12,8 @@ export interface APIHealthMetrics {
   metrics: Record<string, {
     usageCount: number;
     errorCount: number;
-    status: 'healthy' | 'degraded' | 'failed';
-    lastError?: Date | string;
+    status: 'healthy' | 'failed';
+    lastError?: Date | null;
   }>;
 }
 
@@ -32,8 +32,7 @@ export function logAPIHealth(): void {
     let healthyCount = 0;
 
     Object.entries(metrics).forEach(([key, metric], index) => {
-      const icon = metric.status === 'healthy' ? '✅' : 
-                   metric.status === 'degraded' ? '⚠️' : '❌';
+      const icon = metric.status === 'healthy' ? '✅' : '❌';
       const current = index === currentIndex ? ' (CURRENT)' : '';
       const errorInfo = metric.lastError ? ` - Last error: ${metric.lastError}` : '';
 
