@@ -432,6 +432,7 @@ export default function ActiveWorkspacePage({
             dataDNA={formattedDNA} 
             sqlCode={currentSqlCode}
             pythonCode={currentPythonCode}
+            sessionId={sessionData?.id || workspaceId}
           />
         )}
       </WorkspaceLayout>

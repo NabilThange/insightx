@@ -33,14 +33,12 @@ export default function ContextPanel({ dataDNA, sessionId }: ContextPanelProps) 
         setLoading(true);
         setError(null);
 
-        // Call the context agent via the chat API
-        const response = await fetch("/api/agents/chat", {
+        // Call the context agent API
+        const response = await fetch("/api/agents/context", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionId,
-            userMessage: "Analyze this dataset and provide context insights about its purpose, domain, use cases, and business value.",
-            agentId: "context_agent",
           }),
         });
 
@@ -50,18 +48,11 @@ export default function ContextPanel({ dataDNA, sessionId }: ContextPanelProps) 
 
         const data = await response.json();
         
-        // Parse the response - it should be JSON from the context agent
-        let contextData: ContextData;
-        try {
-          contextData = typeof data.response === "string" 
-            ? JSON.parse(data.response) 
-            : data.response;
-        } catch (e) {
-          console.error("Failed to parse context response:", e);
-          throw new Error("Invalid context response format");
+        if (!data.success) {
+          throw new Error(data.error || "Failed to analyze context");
         }
 
-        setContext(contextData);
+        setContext(data.response);
       } catch (err) {
         console.error("Error fetching context:", err);
         setError(err instanceof Error ? err.message : "Failed to load context");
@@ -70,7 +61,7 @@ export default function ContextPanel({ dataDNA, sessionId }: ContextPanelProps) 
       }
     };
 
-    if (dataDNA) {
+    if (dataDNA && sessionId) {
       fetchContext();
     }
   }, [dataDNA, sessionId]);
