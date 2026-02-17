@@ -1,91 +1,86 @@
 /**
- * Agent Identity Configuration
- * Maps each agent to display name, avatar, icon, and role
+ * Agent Identity Registry
+ * Defines visual identity (name, icon, description) for each agent
  */
 
 export interface AgentIdentity {
+  id: string;
   name: string;
-  avatar: string;
   icon: string;
-  role: string;
-  model: string;
+  description: string;
+  color: string;
 }
 
 export const AGENT_IDENTITIES: Record<string, AgentIdentity> = {
   orchestrator: {
-    name: "Query Router",
-    avatar: "/avatars/orchestrator.svg",
-    icon: "🎯",
-    role: "Routes queries to the right specialist",
-    model: "Claude Sonnet 4.5"
+    id: 'orchestrator',
+    name: 'Query Analyzer',
+    icon: '🎯',
+    description: 'Analyzes your question and routes to the right specialist',
+    color: '#8B5CF6', // purple
   },
+
   sql_agent: {
-    name: "SQL Analyst",
-    avatar: "/avatars/sql-agent.svg",
-    icon: "📊",
-    role: "Generates and executes DuckDB queries",
-    model: "Claude Sonnet 4.5"
+    id: 'sql_agent',
+    name: 'SQL Agent',
+    icon: '🔍',
+    description: 'Generates and executes SQL queries',
+    color: '#3B82F6', // blue
   },
+
   python_agent: {
-    name: "Statistical Analyst",
-    avatar: "/avatars/python-agent.svg",
-    icon: "🐍",
-    role: "Performs statistical analysis and outlier detection",
-    model: "Claude Sonnet 4.5"
+    id: 'python_agent',
+    name: 'Python Analyst',
+    icon: '📊',
+    description: 'Performs statistical analysis using Python',
+    color: '#10B981', // green
   },
+
   composer: {
-    name: "Response Composer",
-    avatar: "/avatars/composer.svg",
-    icon: "✍️",
-    role: "Synthesizes results into clear insights",
-    model: "Claude Sonnet 4.5"
+    id: 'composer',
+    name: 'Response Composer',
+    icon: '🎨',
+    description: 'Synthesizes results into clear answers',
+    color: '#F59E0B', // amber
   },
+
   explainer: {
-    name: "Data Explainer",
-    avatar: "/avatars/explainer.svg",
-    icon: "💡",
-    role: "Explains dataset structure and findings",
-    model: "Claude Sonnet 4.5"
+    id: 'explainer',
+    name: 'Explainer',
+    icon: '💡',
+    description: 'Explains dataset structure and findings',
+    color: '#EC4899', // pink
   },
-  validator: {
-    name: "Result Validator",
-    avatar: "/avatars/validator.svg",
-    icon: "✅",
-    role: "Validates consistency between agent results",
-    model: "Claude Sonnet 4.5"
-  }
+
+  context_agent: {
+    id: 'context_agent',
+    name: 'Context Agent',
+    icon: '🧠',
+    description: 'Analyzes dataset purpose, use cases, and domain context',
+    color: '#F59E0B', // amber
+  },
 };
 
-export function getAgentIdentity(agentId: string | null | undefined): AgentIdentity {
-  if (!agentId || !AGENT_IDENTITIES[agentId]) {
+/**
+ * Get agent identity by ID
+ */
+export function getAgentIdentity(agentId: string): AgentIdentity {
+  const identity = AGENT_IDENTITIES[agentId];
+  if (!identity) {
     return {
-      name: "AI Assistant",
-      avatar: "/avatars/default.svg",
-      icon: "🤖",
-      role: "General AI Assistant",
-      model: "Claude"
+      id: agentId,
+      name: agentId,
+      icon: '🤖',
+      description: 'Unknown agent',
+      color: '#6B7280',
     };
   }
-  return AGENT_IDENTITIES[agentId];
+  return identity;
 }
 
-export function findAgentIdByName(name: string): string | null {
-  for (const [id, identity] of Object.entries(AGENT_IDENTITIES)) {
-    if (identity.name.toLowerCase() === name.toLowerCase()) {
-      return id;
-    }
-  }
-  return null;
-}
-
-export function isValidAgentId(agentId: string): boolean {
-  return agentId in AGENT_IDENTITIES;
-}
-
-export function getAllAgentIds(): string[] {
-  return Object.keys(AGENT_IDENTITIES);
-}
-
+/**
+ * Get all agent identities
+ */
 export function getAllAgentIdentities(): AgentIdentity[] {
   return Object.values(AGENT_IDENTITIES);
 }

@@ -4,31 +4,23 @@ import { useSidebar } from "@/components/ui/sidebar";
 import WorkspaceNavbar from "@/components/workspace/WorkspaceNavbar";
 import WorkspaceSidebar from "@/components/workspace/WorkspaceSidebar";
 
-interface Chat {
-  id: string;
-  session_id: string;
-  title: string | null;
-  created_at: string;
-}
-
 interface WorkspaceLayoutProps {
   sessionId: string;
   chatTitle?: string;
   chatId?: string;
-  chats: Chat[];
   onChatsUpdate: () => void;
   onTitleUpdate?: () => void;
+  sqlHistory?: string[];
   children: React.ReactNode;
 }
-
 
 export default function WorkspaceLayout({
   sessionId,
   chatTitle,
   chatId,
-  chats,
   onChatsUpdate,
   onTitleUpdate,
+  sqlHistory = [],
   children,
 }: WorkspaceLayoutProps) {
   const { open, setOpen } = useSidebar();
@@ -49,15 +41,17 @@ export default function WorkspaceLayout({
       />
 
       <div className="workspace-body">
-        <WorkspaceSidebar
-          sessionId={sessionId}
-          chats={chats}
-          onChatsUpdate={onChatsUpdate}
-        />
+        {/* Sidebar only visible when open */}
+        {open && (
+          <WorkspaceSidebar
+            sessionId={sessionId}
+            onChatsUpdate={onChatsUpdate}
+            sqlHistory={sqlHistory}
+          />
+        )}
 
         <div className="main-content">{children}</div>
       </div>
-
 
       <style jsx>{`
         .workspace-container {
@@ -72,11 +66,6 @@ export default function WorkspaceLayout({
         .workspace-body {
           flex: 1;
           display: flex;
-          overflow: hidden;
-        }
-
-        .sidebar-wrapper {
-          height: 100%;
           overflow: hidden;
         }
 

@@ -19,6 +19,8 @@ import {
   createChatInSupabase,
   subscribeToChats,
 } from "@/lib/api/chats";
+import { logger } from "@/lib/utils/logger";
+import { showToast } from "@/lib/utils/toast";
 import type { Message } from "@/store/chatStore";
 
 export default function ActiveWorkspacePage({
@@ -38,13 +40,16 @@ export default function ActiveWorkspacePage({
   const [chats, setChats] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sqlHistory, setSqlHistory] = useState<string[]>([]);
+  const [currentSqlCode, setCurrentSqlCode] = useState<string>("");
+  const [currentPythonCode, setCurrentPythonCode] = useState<string>("");
   const scrollRef = useRef<any>(null);
 
   // Load session and chats
   const loadChats = async (sessionId: string) => {
     try {
       const sessionChats = await getChatsFromSupabase(sessionId);
-      console.log("[ActiveWorkspacePage] Loaded chats from Supabase:", sessionChats);
+      logger.db("Loaded session chats", { count: sessionChats.length });
       setChats(sessionChats);
       return sessionChats;
     } catch (error) {
@@ -103,7 +108,7 @@ export default function ActiveWorkspacePage({
     if (!sessionData?.id) return;
 
     const unsubscribe = subscribeToChats(sessionData.id, (updatedChats) => {
-      console.log("[ActiveWorkspacePage] Real-time update:", updatedChats);
+      logger.db("Real-time chat update received", { count: updatedChats.length });
       setChats(updatedChats);
     });
 
@@ -219,28 +224,48 @@ export default function ActiveWorkspacePage({
             userInput,
             messages.map((m) => ({ role: m.type, content: m.content }))
           )) {
-            console.log("[handleSend] Received event:", event.type);
+            console.log("[handleSend] Received event:", event.type, event);
 
             if (event.type === "status") {
-              // Show thinking step
-              console.log("[handleSend] Status:", event.message);
+              logger.orchestrator(`Thinking: ${event.message}`);
+            } else if (event.type === "toast") {
+              // Handle agent selection toast
+              showToast.agent(event.message, event.data?.reasoning);
             } else if (event.type === "orchestrator_result") {
-              // Log classification
-              console.log("[handleSend] Classification:", event.data.classification);
+              logger.orchestrator("Intent Classified", event.data.classification);
+            } else if (event.type === "code_written") {
+              // Handle code written to sidebar
+              const { code, language } = event.data;
+              if (language === 'sql') {
+                setCurrentSqlCode(code);
+              } else if (language === 'python') {
+                setCurrentPythonCode(code);
+              }
+              logger.tool(`${language.toUpperCase()} Code Written`, { length: code.length });
+              showToast.agent(`📝 ${language.toUpperCase()} code written to sidebar`, `${code.length} characters`);
             } else if (event.type === "sql_result") {
-              // Show SQL execution
-              console.log("[handleSend] SQL executed:", event.data.query);
+              logger.tool("SQL Analysis Executed", { query: event.data.query });
+              showToast.agent("✅ SQL Query executed successfully", `${event.data.results?.rows?.length || 0} rows returned`);
+              
+              // Add SQL query to history
+              if (event.data.query) {
+                setSqlHistory(prev => {
+                  const newHistory = [event.data.query, ...prev];
+                  // Keep only last 10 queries
+                  return newHistory.slice(0, 10);
+                });
+              }
             } else if (event.type === "python_result") {
-              // Show Python analysis
-              console.log("[handleSend] Python analysis:", event.data.results);
+              logger.tool("Python Script Executed", { results: event.data.results });
+              showToast.agent("✅ Python analysis completed", "Results ready for synthesis");
             } else if (event.type === "final_response") {
-              // Extract text from final response
-              assistantContent = event.data.text || JSON.stringify(event.data);
-              console.log("[handleSend] Final response received");
+              // Store the full response data for proper rendering
+              assistantContent = event.data;
+              logger.orchestrator("Final response received");
             } else if (event.type === "error") {
-              // Show error
-              console.error("[handleSend] Stream error:", event.message);
+              logger.error("Orchestrator", event.message);
               assistantContent = `Error: ${event.message}`;
+              showToast.error("❌ Error during analysis", event.message);
             }
           }
         }
@@ -271,7 +296,9 @@ export default function ActiveWorkspacePage({
               id: msg.id,
               sessionId: sessionData.id,
               type: msg.role === "user" ? "user" : "orchestrator",
-              content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+              // Keep the full parsed object if it has a text field (Composer response)
+              // Otherwise extract just the text or use the string
+              content: parsedContent,
               timestamp: new Date(msg.created_at),
             };
           })
@@ -289,6 +316,14 @@ export default function ActiveWorkspacePage({
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleFollowUpClick = (question: string) => {
+    setInput(question);
+    // Auto-submit the follow-up question
+    setTimeout(() => {
+      handleSend();
+    }, 100);
   };
 
   const handleChatsUpdate = async () => {
@@ -374,9 +409,9 @@ export default function ActiveWorkspacePage({
         sessionId={activeChatId || sessionData.id}
         chatTitle={activeChat?.title || "New Analysis"}
         chatId={activeChatId || undefined}
-        chats={chats}
         onChatsUpdate={handleChatsUpdate}
         onTitleUpdate={handleChatsUpdate}
+        sqlHistory={sqlHistory}
       >
         {/* MAIN PANEL - CHAT INTERFACE */}
         <ChatPanel
@@ -388,10 +423,17 @@ export default function ActiveWorkspacePage({
           handleKeyDown={handleKeyDown}
           isStreaming={isStreaming}
           scrollRef={scrollRef}
+          onFollowUpClick={handleFollowUpClick}
         />
 
         {/* RIGHT SIDEBAR - DATA PROFILING */}
-        {formattedDNA && <WorkspaceRightSidebar dataDNA={formattedDNA} />}
+        {formattedDNA && (
+          <WorkspaceRightSidebar 
+            dataDNA={formattedDNA} 
+            sqlCode={currentSqlCode}
+            pythonCode={currentPythonCode}
+          />
+        )}
       </WorkspaceLayout>
     </SidebarProvider>
   );

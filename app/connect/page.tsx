@@ -18,6 +18,8 @@ import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
 import { generateFintechData } from "@/components/data/DataGenerator";
 import TextType from "@/components/interactive/TextType";
+import { showToast } from "@/lib/utils/toast";
+import { logger } from "@/lib/utils/logger";
 
 import { useDataStore } from "@/store/dataStore";
 import type { DataDNA } from "@/store/dataStore";
@@ -139,28 +141,29 @@ export default function ConnectPage() {
     setUploadState("scanning");
 
     try {
-      console.log("Starting upload...");
-      console.log("API URL:", process.env.NEXT_PUBLIC_API_URL || "https://insightx-bkend.onrender.com/api");
+      logger.api("Starting file upload", { filename: file.name, size: file.size });
 
       // 1. Upload file to backend
       const uploadResponse = await uploadFile(file);
-      console.log("Upload response:", uploadResponse);
+      logger.api("File uploaded successfully", uploadResponse);
+      showToast.success("File Uploaded", "Analyzing data structure now...");
 
       // Store session_id in localStorage
       localStorage.setItem("current_session_id", uploadResponse.session_id);
 
       // 2. Trigger exploration
-      console.log("Triggering exploration...");
+      logger.api("Triggering data exploration", { sessionId: uploadResponse.session_id });
       await exploreSession(uploadResponse.session_id);
 
       // 3. Poll until ready and get Data DNA
-      console.log("Polling for ready status...");
+      logger.api("Polling for ready status...");
       const session = await pollSessionUntilReady(
         uploadResponse.session_id,
-        (status) => console.log("Session status:", status)
+        (status) => logger.api(`Polling status: ${status}`)
       );
 
-      console.log("Session ready:", session);
+      logger.api("Session ready", session);
+      showToast.success("Data DNA Ready", "Full analysis profile generated.");
 
       // Convert backend Data DNA to frontend format
       const dna = formatSessionToDataDNA(session);
@@ -170,9 +173,8 @@ export default function ConnectPage() {
       // Store in Zustand for backward compatibility
       setDataDNA(dna);
     } catch (error) {
-      console.error("Upload failed:", error);
-      console.error("Error details:", error instanceof Error ? error.message : String(error));
-      alert(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}. Please check console for details.`);
+      logger.error("API", "Upload or analysis failed", error);
+      showToast.error("Analysis Failed", error instanceof Error ? error.message : "Unknown error");
       setUploadState("idle");
     }
   };

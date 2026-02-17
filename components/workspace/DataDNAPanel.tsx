@@ -719,52 +719,67 @@ function PatternsSection({ d }: { d: DataDNA }) {
     const patterns = d.patterns || [];
     const insights = d.accumulatedInsights || [];
 
-    const icon = (p: string) => {
-        if (p.includes("outlier") || p.includes("skew")) return "↘";
-        if (p.includes("duplicate")) return "◈";
-        if (p.includes("missing") || p.includes("null")) return "○";
-        if (p.includes("correlation")) return "↔";
-        if (p.includes("Peak") || p.includes("peak")) return "◎";
-        if (p.includes("fail") || p.includes("error")) return "⚑";
-        if (p.includes("success") || p.includes("complete")) return "✓";
-        if (p.includes("cardinality")) return "⊞";
-        if (p.includes("constant") || p.includes("variance")) return "⊝";
+    const getPatternText = (p: any): string => {
+        if (typeof p === 'string') return p;
+        if (typeof p === 'object' && p !== null) {
+            // Handle pattern objects with finding, query, etc.
+            return p.finding || p.query || p.description || JSON.stringify(p);
+        }
+        return String(p);
+    };
+
+    const icon = (p: any) => {
+        const text = getPatternText(p);
+        if (text.includes("outlier") || text.includes("skew")) return "↘";
+        if (text.includes("duplicate")) return "◈";
+        if (text.includes("missing") || text.includes("null")) return "○";
+        if (text.includes("correlation")) return "↔";
+        if (text.includes("Peak") || text.includes("peak")) return "◎";
+        if (text.includes("fail") || text.includes("error")) return "⚑";
+        if (text.includes("success") || text.includes("complete")) return "✓";
+        if (text.includes("cardinality")) return "⊞";
+        if (text.includes("constant") || text.includes("variance")) return "⊝";
         return "→";
     };
 
-    const isWarn = (p: string) =>
-        p.includes("fail") || p.includes("error") || p.includes("missing") ||
-        p.includes("outlier") || p.includes("duplicate");
+    const isWarn = (p: any) => {
+        const text = getPatternText(p);
+        return text.includes("fail") || text.includes("error") || text.includes("missing") ||
+            text.includes("outlier") || text.includes("duplicate");
+    };
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {patterns.map((p: string, i: number) => (
-                <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    style={{
-                        display: "flex", gap: "0.75rem", alignItems: "flex-start",
-                        padding: "0.75rem 0.875rem",
-                        background: isWarn(p) ? "rgba(217,119,6,0.05)" : T.loaderBg,
-                        borderLeft: `3px solid ${isWarn(p) ? T.warning : T.stroke}`,
-                        borderRadius: "0 0.5rem 0.5rem 0",
-                        border: `1px solid ${isWarn(p) ? "rgba(217,119,6,0.2)" : T.stroke}`,
-                        borderLeftWidth: 3,
-                        borderLeftColor: isWarn(p) ? T.warning : T.fg,
-                    }}
-                >
-                    <span style={{
-                        fontSize: "0.75rem", color: isWarn(p) ? T.warning : T.muted,
-                        flexShrink: 0, marginTop: 1, fontWeight: 700
-                    }}>{icon(p)}</span>
-                    <p style={{
-                        margin: 0, fontSize: "0.72rem", color: T.mutedMd,
-                        lineHeight: 1.55, fontFamily: "'PP Neue Montreal', system-ui, sans-serif"
-                    }}>{p}</p>
-                </motion.div>
-            ))}
+            {patterns.map((p: any, i: number) => {
+                const patternText = getPatternText(p);
+                return (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        style={{
+                            display: "flex", gap: "0.75rem", alignItems: "flex-start",
+                            padding: "0.75rem 0.875rem",
+                            background: isWarn(p) ? "rgba(217,119,6,0.05)" : T.loaderBg,
+                            borderLeft: `3px solid ${isWarn(p) ? T.warning : T.stroke}`,
+                            borderRadius: "0 0.5rem 0.5rem 0",
+                            border: `1px solid ${isWarn(p) ? "rgba(217,119,6,0.2)" : T.stroke}`,
+                            borderLeftWidth: 3,
+                            borderLeftColor: isWarn(p) ? T.warning : T.fg,
+                        }}
+                    >
+                        <span style={{
+                            fontSize: "0.75rem", color: isWarn(p) ? T.warning : T.muted,
+                            flexShrink: 0, marginTop: 1, fontWeight: 700
+                        }}>{icon(p)}</span>
+                        <p style={{
+                            margin: 0, fontSize: "0.72rem", color: T.mutedMd,
+                            lineHeight: 1.55, fontFamily: "'PP Neue Montreal', system-ui, sans-serif"
+                        }}>{patternText}</p>
+                    </motion.div>
+                );
+            })}
 
             {insights.length > 0 && (
                 <>
@@ -775,22 +790,25 @@ function PatternsSection({ d }: { d: DataDNA }) {
                     }}>
                         Accumulated Insights
                     </div>
-                    {insights.map((p: string, i: number) => (
-                        <div key={i} style={{
-                            display: "flex", gap: "0.75rem", alignItems: "flex-start",
-                            padding: "0.75rem 0.875rem",
-                            background: "rgba(79,70,229,0.05)",
-                            border: `1px solid rgba(79,70,229,0.15)`,
-                            borderLeftColor: T.accent, borderLeftWidth: 3,
-                            borderRadius: "0 0.5rem 0.5rem 0",
-                        }}>
-                            <TrendingUp size={12} style={{ color: T.accent, flexShrink: 0, marginTop: 2 }} />
-                            <p style={{
-                                margin: 0, fontSize: "0.72rem", color: T.mutedMd,
-                                lineHeight: 1.55
-                            }}>{p}</p>
-                        </div>
-                    ))}
+                    {insights.map((p: any, i: number) => {
+                        const insightText = typeof p === 'string' ? p : (p.finding || p.query || p.description || JSON.stringify(p));
+                        return (
+                            <div key={i} style={{
+                                display: "flex", gap: "0.75rem", alignItems: "flex-start",
+                                padding: "0.75rem 0.875rem",
+                                background: "rgba(79,70,229,0.05)",
+                                border: `1px solid rgba(79,70,229,0.15)`,
+                                borderLeftColor: T.accent, borderLeftWidth: 3,
+                                borderRadius: "0 0.5rem 0.5rem 0",
+                            }}>
+                                <TrendingUp size={12} style={{ color: T.accent, flexShrink: 0, marginTop: 2 }} />
+                                <p style={{
+                                    margin: 0, fontSize: "0.72rem", color: T.mutedMd,
+                                    lineHeight: 1.55
+                                }}>{insightText}</p>
+                            </div>
+                        );
+                    })}
                 </>
             )}
         </div>

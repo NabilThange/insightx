@@ -17,6 +17,7 @@ interface ChatPanelProps {
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isStreaming: boolean;
   scrollRef: RefObject<HTMLDivElement | null>;
+  onFollowUpClick?: (question: string) => void;
 }
 
 export default function ChatPanel({
@@ -27,7 +28,8 @@ export default function ChatPanel({
   handleSend,
   handleKeyDown,
   isStreaming,
-  scrollRef
+  scrollRef,
+  onFollowUpClick
 }: ChatPanelProps) {
   return (
     <main className="chat-panel">
@@ -53,7 +55,7 @@ export default function ChatPanel({
                   <div key={msg.id} className="user-message">{msg.content}</div>
                 ) : (
                   <div key={msg.id} className="agent-message-wrapper">
-                    <AgentMessage message={msg} />
+                    <AgentMessage message={msg} onFollowUpClick={onFollowUpClick} />
                   </div>
                 )
               ))}

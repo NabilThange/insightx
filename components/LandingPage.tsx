@@ -289,11 +289,11 @@ export default function LandingPage() {
         }
         .num1offset1 {
           position: relative;
-          right: -30px;
+          right: -5px;
         }
         .num1offset2 {
           position: relative;
-          right: -15px;
+          right: -2px;
         }
 
         img {

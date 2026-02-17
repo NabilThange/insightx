@@ -237,7 +237,31 @@ export class AssemblyLineOrchestrator {
     const { sessionId, userMessage } = options;
     this.chatId = options.chatId || null;
 
-    const toolExecutor = new ToolExecutor(sessionId);
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('🚀 [ORCHESTRATOR] STARTING NEW ORCHESTRATION');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`📝 User Message: "${userMessage}"`);
+    console.log(`🔑 Session ID: ${sessionId}`);
+    console.log(`💬 Chat ID: ${this.chatId}`);
+
+    // Create tool executor with code write callback and tool call callback
+    const toolExecutor = new ToolExecutor(
+      sessionId, 
+      (code: string, language: string, description?: string) => {
+        // Emit code_written event when agents write code
+        console.log(`📝 [Code Written] ${language.toUpperCase()} code pushed to sidebar`);
+      },
+      (toolName: string, status: 'start' | 'success' | 'error', data?: any) => {
+        // Emit tool call events
+        if (status === 'start') {
+          console.log(`🔧 [Tool Call] Starting: ${toolName}`);
+        } else if (status === 'success') {
+          console.log(`✅ [Tool Call] Success: ${toolName} (${data?.executionTime}ms)`);
+        } else if (status === 'error') {
+          console.log(`❌ [Tool Call] Error: ${toolName} - ${data?.error}`);
+        }
+      }
+    );
     await toolExecutor.loadDataDNA();
 
     yield { type: 'status', message: 'Analyzing query type...' };
@@ -257,9 +281,110 @@ export class AssemblyLineOrchestrator {
       }
     }
 
+    // Load conversation history BEFORE using it
+    const history = await this.getHistory();
+
     try {
+      console.log('\n📍 STAGE 0: DATA DNA AGENT (Quick Lookup)');
+      console.log('─────────────────────────────────────────────────────────────');
+      console.log('🧬 [Data DNA Agent] Checking if question can be answered from metadata...');
+      
+      yield { type: 'toast', message: '🧬 Checking Data DNA...', data: { agent: 'DATA_DNA', status: 'checking' } };
+      
+      const dataDnaResult = await this.agentRunner.runAgent({
+        agentId: 'data_dna_agent',
+        userMessage,
+        conversationHistory: history,
+        toolExecutor
+      });
+
+      // Log raw response for debugging
+      console.log('🧬 [Data DNA Agent] Raw response:', dataDnaResult.content);
+
+      let dataDnaResponse;
+      try {
+        // Try to clean markdown code blocks if present
+        let cleanedContent = dataDnaResult.content.trim();
+        const jsonMatch = cleanedContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonMatch) {
+          cleanedContent = jsonMatch[1];
+          console.log('🧹 [Data DNA Agent] Stripped markdown wrapper');
+        }
+        
+        dataDnaResponse = JSON.parse(cleanedContent);
+        console.log('✅ [Data DNA Agent] Response:', dataDnaResponse.can_answer ? 'CAN ANSWER' : 'NEEDS ORCHESTRATION');
+      } catch (e) {
+        console.error('❌ [Data DNA Agent] Failed to parse response as JSON');
+        console.error('   Raw content:', dataDnaResult.content);
+        console.error('   Parse error:', e);
+        console.warn('⚠️ [Data DNA Agent] Falling back to Orchestrator due to parse failure');
+        dataDnaResponse = { can_answer: false, needs_orchestration: true };
+      }
+
+      // If Data DNA Agent can answer, return early
+      if (dataDnaResponse.can_answer && dataDnaResponse.answer) {
+        console.log('✨ [Data DNA Agent] Question answered from metadata - short-circuiting pipeline');
+        
+        yield { 
+          type: 'toast', 
+          message: '✨ Found answer in Data DNA!',
+          data: { 
+            agent: 'DATA_DNA', 
+            reasoning: 'Question answered directly from dataset metadata',
+            status: 'success'
+          } 
+        };
+
+        // Save the answer
+        if (this.chatId) {
+          try {
+            await ChatService.addMessage({
+              chat_id: this.chatId,
+              role: 'assistant',
+              content: dataDnaResponse.answer
+            });
+            console.log('✅ [Data DNA Agent] Answer persisted to DB');
+          } catch (dbError) {
+            console.warn('⚠️ [Data DNA Agent] Could not persist answer:', dbError);
+          }
+        }
+
+        console.log('\n═══════════════════════════════════════════════════════════════');
+        console.log('✅ ORCHESTRATION COMPLETE (Data DNA Short-Circuit)');
+        console.log('═══════════════════════════════════════════════════════════════\n');
+
+        yield {
+          type: 'final_response',
+          data: {
+            text: dataDnaResponse.answer,
+            classification: 'DATA_DNA_ONLY'
+          }
+        };
+        return;
+      }
+
+      // Check if Data DNA Agent explicitly needs orchestration
+      if (dataDnaResponse.needs_orchestration) {
+        console.log('🔄 [Data DNA Agent] Needs orchestration - automatically calling Orchestrator...');
+        yield { 
+          type: 'toast', 
+          message: '🔄 Routing to Orchestrator for execution...',
+          data: { 
+            agent: 'DATA_DNA', 
+            status: 'routing',
+            reasoning: dataDnaResponse.reasoning 
+          } 
+        };
+      } else {
+        console.log('→ [Data DNA Agent] Cannot answer from metadata, proceeding to Orchestrator...');
+        yield { type: 'toast', message: '→ Proceeding to Orchestrator...', data: { agent: 'DATA_DNA', status: 'proceeding' } };
+      }
+
+      console.log('\n📍 STAGE 1: ORCHESTRATOR AGENT');
+      console.log('─────────────────────────────────────────────────────────────');
       console.log('🤖 [Orchestrator] Running orchestrator agent...');
-      const history = await this.getHistory();
+      
+      yield { type: 'toast', message: '🤖 Analyzing query intent...', data: { agent: 'ORCHESTRATOR', status: 'analyzing' } };
 
       const orchestratorResult = await this.agentRunner.runAgent({
         agentId: 'orchestrator',
@@ -269,14 +394,103 @@ export class AssemblyLineOrchestrator {
       });
 
       const content = orchestratorResult.content;
-      console.log('📝 [Orchestrator] Response content:', content.substring(0, 200));
+      console.log('📄 [Orchestrator] Raw response:', content);
 
       let classification;
       try {
         classification = JSON.parse(content);
+        console.log('✅ [Orchestrator] Successfully parsed JSON:', classification.classification);
       } catch (e) {
-        classification = { classification: 'EXPLAIN_ONLY', reasoning: content };
+        console.warn('⚠️ [Orchestrator] Failed to parse JSON, attempting extraction...');
+        
+        // Strategy 1: Try to extract JSON from markdown code blocks
+        let jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonMatch) {
+          try {
+            classification = JSON.parse(jsonMatch[1]);
+            console.log('✅ [Orchestrator] Extracted JSON from markdown code block:', classification.classification);
+          } catch (e2) {
+            console.warn('⚠️ [Orchestrator] Failed to parse markdown JSON, trying next strategy...');
+          }
+        }
+        
+        // Strategy 2: Try to find any JSON object in the response
+        if (!classification) {
+          jsonMatch = content.match(/\{[\s\S]*?"classification"[\s\S]*?\}/);
+          if (jsonMatch) {
+            try {
+              classification = JSON.parse(jsonMatch[0]);
+              console.log('✅ [Orchestrator] Extracted JSON via regex:', classification.classification);
+            } catch (e2) {
+              console.warn('⚠️ [Orchestrator] Failed to parse extracted JSON, trying next strategy...');
+            }
+          }
+        }
+        
+        // Strategy 3: Intelligent fallback based on content analysis
+        if (!classification) {
+          console.error('❌ [Orchestrator] No valid JSON found. Analyzing content for classification...');
+          
+          // Check if the response contains code examples (indicates EXPLAIN_ONLY was wrongly chosen)
+          const hasCodeBlocks = content.includes('```python') || content.includes('```sql');
+          const userQuery = userMessage.toLowerCase();
+          
+          // Detect execution intent from user message
+          const executionKeywords = ['write', 'run', 'execute', 'generate', 'create'];
+          const hasExecutionIntent = executionKeywords.some(kw => userQuery.includes(kw));
+          
+          if (hasExecutionIntent && hasCodeBlocks) {
+            // User wanted execution but got explanation - fix the classification
+            if (content.includes('```python') || userQuery.includes('python')) {
+              console.log('🔧 [Orchestrator] Auto-correcting to PY_ONLY based on content analysis');
+              classification = { 
+                classification: 'PY_ONLY', 
+                reasoning: 'User requested Python code execution (auto-corrected from malformed response)',
+                columns_needed: [],
+                metrics_needed: [],
+                next_agents: ['python_agent']
+              };
+            } else if (content.includes('```sql') || userQuery.includes('sql')) {
+              console.log('🔧 [Orchestrator] Auto-correcting to SQL_ONLY based on content analysis');
+              classification = { 
+                classification: 'SQL_ONLY', 
+                reasoning: 'User requested SQL code execution (auto-corrected from malformed response)',
+                columns_needed: [],
+                metrics_needed: [],
+                next_agents: ['sql_agent']
+              };
+            } else {
+              classification = { classification: 'EXPLAIN_ONLY', reasoning: content };
+            }
+          } else {
+            classification = { classification: 'EXPLAIN_ONLY', reasoning: content };
+          }
+        }
       }
+
+      console.log('\n🎯 CLASSIFICATION RESULT:');
+      console.log(`   Type: ${classification.classification}`);
+      console.log(`   Reasoning: ${classification.reasoning}`);
+
+      // Emit toast for agent selection
+      const agentNames: Record<string, string> = {
+        'SQL_ONLY': 'SQL Agent',
+        'PY_ONLY': 'Python Analyst',
+        'SQL_THEN_PY': 'SQL + Python Analysis',
+        'EXPLAIN_ONLY': 'Explainer Agent'
+      };
+      
+      const selectedAgent = agentNames[classification.classification] || 'Explainer Agent';
+      console.log(`\n✨ TOAST: Using ${selectedAgent}`);
+      
+      yield { 
+        type: 'toast', 
+        message: `Using ${selectedAgent}`,
+        data: { 
+          agent: classification.classification, 
+          reasoning: classification.reasoning 
+        } 
+      };
 
       yield { type: 'orchestrator_result', data: classification };
 
@@ -285,6 +499,12 @@ export class AssemblyLineOrchestrator {
 
       // STAGE 2: Specialist Agents (SQL / Python)
       if (classification.classification === 'SQL_ONLY' || classification.classification === 'SQL_THEN_PY') {
+        console.log('\n📍 STAGE 2A: SQL AGENT');
+        console.log('─────────────────────────────────────────────────────────────');
+        console.log('🔍 [SQL Agent] Generating and executing SQL query...');
+        
+        yield { type: 'toast', message: '🔍 SQL Agent: Generating query...', data: { agent: 'SQL_AGENT', status: 'generating' } };
+        
         yield { type: 'status', message: 'Generating and executing SQL query...' };
         const sqlResult = await this.agentRunner.runAgent({
           agentId: 'sql_agent',
@@ -293,25 +513,38 @@ export class AssemblyLineOrchestrator {
           toolExecutor
         });
 
+        console.log('📄 [SQL Agent] Raw response:', sqlResult.content);
+        console.log('✅ [SQL Agent] Query generated and executed');
+        console.log(`   Tool Results: ${JSON.stringify(sqlResult.toolResults).substring(0, 100)}...`);
+
+        yield { type: 'toast', message: '✅ SQL Query executed successfully', data: { agent: 'SQL_AGENT', status: 'success', rows: sqlResult.toolResults.run_sql?.rows?.length || 0 } };
+
         contextData.sql_result = sqlResult.content;
+        contextData.sql_tool_results = sqlResult.toolResults.run_sql;
         lastAgentOutput = sqlResult.content;
+        
+        // Emit code_written event for SQL
+        yield { 
+          type: 'code_written', 
+          data: { 
+            code: sqlResult.content, 
+            language: 'sql',
+            description: 'SQL query generated by SQL Agent'
+          } 
+        };
+        
         yield { type: 'sql_result', data: { query: sqlResult.content, results: sqlResult.toolResults.run_sql } };
 
-        if (this.chatId) {
-          try {
-            await ChatService.addMessage({
-              chat_id: this.chatId,
-              role: 'assistant',
-              content: `SQL Query: ${sqlResult.content}\nResults: ${JSON.stringify(sqlResult.toolResults.run_sql)}`
-            });
-            console.log('✅ [Orchestrator] SQL agent output persisted to DB');
-          } catch (dbError) {
-            console.warn('⚠️ [Orchestrator] Could not persist SQL agent output:', dbError);
-          }
-        }
+        // DO NOT save intermediate SQL results to DB - only final Composer response should be saved
       }
 
       if (classification.classification === 'PY_ONLY' || classification.classification === 'SQL_THEN_PY') {
+        console.log('\n📍 STAGE 2B: PYTHON AGENT');
+        console.log('─────────────────────────────────────────────────────────────');
+        console.log('📊 [Python Agent] Performing statistical analysis...');
+        
+        yield { type: 'toast', message: '📊 Python Agent: Running analysis...', data: { agent: 'PYTHON_AGENT', status: 'analyzing' } };
+        
         yield { type: 'status', message: 'Performing statistical analysis with Python...' };
         const pythonResult = await this.agentRunner.runAgent({
           agentId: 'python_agent',
@@ -320,27 +553,39 @@ export class AssemblyLineOrchestrator {
           toolExecutor
         });
 
+        console.log('📄 [Python Agent] Raw response:', pythonResult.content);
+        console.log('✅ [Python Agent] Analysis completed');
+        console.log(`   Results: ${JSON.stringify(pythonResult.toolResults).substring(0, 100)}...`);
+
+        yield { type: 'toast', message: '✅ Python analysis completed', data: { agent: 'PYTHON_AGENT', status: 'success' } };
+
         contextData.python_result = pythonResult.content;
+        contextData.python_tool_results = pythonResult.toolResults.run_python;
         lastAgentOutput = pythonResult.content;
+        
+        // Emit code_written event for Python
+        yield { 
+          type: 'code_written', 
+          data: { 
+            code: pythonResult.content, 
+            language: 'python',
+            description: 'Python code generated by Python Agent'
+          } 
+        };
+        
         yield { type: 'python_result', data: { code: pythonResult.content, results: pythonResult.toolResults.run_python } };
 
-        if (this.chatId) {
-          try {
-            await ChatService.addMessage({
-              chat_id: this.chatId,
-              role: 'assistant',
-              content: `Python Code: ${pythonResult.content}\nResults: ${JSON.stringify(pythonResult.toolResults.run_python)}`
-            });
-            console.log('✅ [Orchestrator] Python agent output persisted to DB');
-          } catch (dbError) {
-            console.warn('⚠️ [Orchestrator] Could not persist Python agent output:', dbError);
-          }
-        }
+        // DO NOT save intermediate Python results to DB - only final Composer response should be saved
       }
 
       // STAGE 3: Final Response (Composer / Explainer)
+      console.log('\n📍 STAGE 3: FINAL RESPONSE AGENT');
+      console.log('─────────────────────────────────────────────────────────────');
+      
       let finalResponse;
       if (classification.classification === 'EXPLAIN_ONLY') {
+        console.log('💡 [Explainer Agent] Drafting explanation...');
+        yield { type: 'toast', message: '💡 Explainer: Drafting explanation...', data: { agent: 'EXPLAINER', status: 'drafting' } };
         yield { type: 'status', message: 'Drafting explanation...' };
         finalResponse = await this.agentRunner.runAgent({
           agentId: 'explainer',
@@ -348,17 +593,47 @@ export class AssemblyLineOrchestrator {
           conversationHistory: history,
           toolExecutor
         });
+        console.log('📄 [Explainer Agent] Raw response:', finalResponse.content);
+        console.log('✅ [Explainer Agent] Explanation generated');
+        yield { type: 'toast', message: '✅ Explanation ready', data: { agent: 'EXPLAINER', status: 'success' } };
       } else {
+        console.log('🎨 [Composer Agent] Synthesizing final answer...');
+        yield { type: 'toast', message: '🎨 Composer: Synthesizing response...', data: { agent: 'COMPOSER', status: 'synthesizing' } };
         yield { type: 'status', message: 'Synthesizing final answer...' };
+        
+        // Build a clear, structured context for the Composer
+        let composerContext = `User Query: "${userMessage}"\n\n`;
+        composerContext += `Classification: ${classification.classification}\n`;
+        composerContext += `Reasoning: ${classification.reasoning}\n\n`;
+        
+        if (contextData.sql_result) {
+          composerContext += `=== SQL ANALYSIS ===\n`;
+          composerContext += `SQL Query Executed:\n${contextData.sql_result}\n\n`;
+          if (contextData.sql_tool_results) {
+            composerContext += `SQL Results:\n${JSON.stringify(contextData.sql_tool_results, null, 2)}\n\n`;
+          }
+        }
+        
+        if (contextData.python_result) {
+          composerContext += `=== PYTHON ANALYSIS ===\n`;
+          composerContext += `Python Code Executed:\n${contextData.python_result}\n\n`;
+          if (contextData.python_tool_results) {
+            composerContext += `Python Results:\n${JSON.stringify(contextData.python_tool_results, null, 2)}\n\n`;
+          }
+        }
+        
+        composerContext += `\nYour task: Synthesize the above analysis into a user-friendly response following the JSON format specified in your system prompt.`;
+        
         finalResponse = await this.agentRunner.runAgent({
           agentId: 'composer',
-          userMessage: `Synthesize a final response for the user.\n\nUser Query: ${userMessage}\n\nAnalysis Results: ${JSON.stringify(contextData)}`,
+          userMessage: composerContext,
           conversationHistory: history,
           toolExecutor
         });
+        console.log('📄 [Composer Agent] Raw response:', finalResponse.content);
+        console.log('✅ [Composer Agent] Final response synthesized');
+        yield { type: 'toast', message: '✅ Response synthesized', data: { agent: 'COMPOSER', status: 'success' } };
       }
-
-      const finalContent = finalResponse.content;
 
       // Save Assistant Message
       if (this.chatId) {
@@ -366,7 +641,7 @@ export class AssemblyLineOrchestrator {
           await ChatService.addMessage({
             chat_id: this.chatId,
             role: 'assistant',
-            content: finalContent
+            content: finalResponse.content
           });
           console.log('✅ [Orchestrator] Assistant response persisted to DB');
         } catch (dbError) {
@@ -374,17 +649,25 @@ export class AssemblyLineOrchestrator {
         }
       }
 
+      console.log('\n═══════════════════════════════════════════════════════════════');
+      console.log('✅ ORCHESTRATION COMPLETE');
+      console.log('═══════════════════════════════════════════════════════════════\n');
+
       yield {
         type: 'final_response',
         data: {
-          text: finalContent,
+          text: finalResponse.content,
           classification: classification.classification
         }
       };
 
     } catch (error: any) {
-      console.error("❌ [Orchestrator] Failed:", error);
-      console.error("📋 [Orchestrator] Error stack:", error.stack);
+      console.error('\n═══════════════════════════════════════════════════════════════');
+      console.error("❌ [ORCHESTRATOR] ORCHESTRATION FAILED");
+      console.error('═══════════════════════════════════════════════════════════════');
+      console.error("Error:", error.message);
+      console.error("📋 Stack:", error.stack);
+      console.error('═══════════════════════════════════════════════════════════════\n');
       throw error; // Re-throw to be caught by API route
     }
   }

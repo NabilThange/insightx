@@ -126,6 +126,34 @@ export const RUN_PYTHON_TOOL: ToolDefinition = {
   },
 };
 
+// Tool: Write Code to Sidebar
+export const WRITE_CODE_TOOL: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'write_code',
+    description: 'Write code to the WorkspaceRightSidebar so the user can see what code was executed. Call this AFTER generating SQL or Python code but BEFORE executing it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'The code to display in the sidebar',
+        },
+        language: {
+          type: 'string',
+          enum: ['sql', 'python'],
+          description: 'The programming language of the code',
+        },
+        description: {
+          type: 'string',
+          description: 'Brief description of what the code does',
+        },
+      },
+      required: ['code', 'language'],
+    },
+  },
+};
+
 // All tools registry
 export const ALL_TOOLS: Record<string, ToolDefinition> = {
   read_data_dna: READ_DATA_DNA_TOOL,
@@ -133,6 +161,7 @@ export const ALL_TOOLS: Record<string, ToolDefinition> = {
   write_context: WRITE_CONTEXT_TOOL,
   run_sql: RUN_SQL_TOOL,
   run_python: RUN_PYTHON_TOOL,
+  write_code: WRITE_CODE_TOOL,
 };
 
 /**

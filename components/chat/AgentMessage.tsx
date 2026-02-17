@@ -7,13 +7,20 @@ import AgentBadge from "./AgentBadge";
 import ThinkingProcess from "./ThinkingProcess";
 import CodeBlock from "../data/CodeBlock";
 import InsightCard from "../data/InsightCard";
+import ComposerResponseRenderer from "./ComposerResponseRenderer";
+import { parseComposerResponse, isComposerResponse } from "@/lib/utils/response-parser";
 import type { Message } from "@/store/chatStore";
 
 interface AgentMessageProps {
   message: Message;
+  onFollowUpClick?: (question: string) => void;
 }
 
-export default function AgentMessage({ message }: AgentMessageProps) {
+export default function AgentMessage({ message, onFollowUpClick }: AgentMessageProps) {
+  // Check if this is a structured Composer response
+  const isStructuredResponse = message.content && isComposerResponse(message.content);
+  const parsedResponse = isStructuredResponse ? parseComposerResponse(message.content) : null;
+
   return (
     <motion.div
       className="agent-message"
@@ -31,41 +38,49 @@ export default function AgentMessage({ message }: AgentMessageProps) {
           <ThinkingProcess steps={message.thinking} />
         )}
 
-        {/* Main Content */}
-        {message.content && (
-          <div className="markdown-content">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                pre: ({ children }) => <>{children}</>,
-                code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  const codeContent = String(children).replace(/\n$/, "");
+        {/* Structured Composer Response */}
+        {parsedResponse ? (
+          <ComposerResponseRenderer
+            response={parsedResponse}
+            onFollowUpClick={onFollowUpClick}
+          />
+        ) : (
+          /* Fallback: Regular Markdown Content */
+          message.content && (
+            <div className="markdown-content">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  pre: ({ children }) => <>{children}</>,
+                  code({ node, inline, className, children, ...props }: any) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    const codeContent = String(children).replace(/\n$/, "");
 
-                  if (!inline) {
+                    if (!inline) {
+                      return (
+                        <CodeBlock
+                          language={match ? match[1] : "text"}
+                          code={codeContent}
+                        />
+                      );
+                    }
                     return (
-                      <CodeBlock
-                        language={match ? match[1] : "text"}
-                        code={codeContent}
-                      />
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
                     );
-                  }
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-                table: ({ children }) => (
-                  <div className="table-wrapper">
-                    <table>{children}</table>
-                  </div>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
+                  },
+                  table: ({ children }) => (
+                    <div className="table-wrapper">
+                      <table>{children}</table>
+                    </div>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )
         )}
 
         {/* Code Blocks */}

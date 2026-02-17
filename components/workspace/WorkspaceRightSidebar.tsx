@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DataDNAPanel from "./DataDNAPanel";
+import ContextPanel from "./ContextPanel";
 import { DataDNA } from "@/store/dataStore";
-import { Fingerprint, Database, Terminal, Layers, Info } from "lucide-react";
+import { Fingerprint, Database, Terminal, Info } from "lucide-react";
 
 interface WorkspaceRightSidebarProps {
   dataDNA: DataDNA;
+  sqlCode?: string;
+  pythonCode?: string;
+  sessionId?: string;
 }
 
 type SidebarOption = "dataDNA" | "sql" | "python" | "context";
@@ -18,7 +22,7 @@ const SIDEBAR_OPTIONS = [
   { id: "context" as SidebarOption, icon: Info, label: "Context", color: "var(--warning)" },
 ];
 
-export default function WorkspaceRightSidebar({ dataDNA }: WorkspaceRightSidebarProps) {
+export default function WorkspaceRightSidebar({ dataDNA, sqlCode, pythonCode, sessionId }: WorkspaceRightSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeOption, setActiveOption] = useState<SidebarOption | null>(null);
 
@@ -32,6 +36,19 @@ export default function WorkspaceRightSidebar({ dataDNA }: WorkspaceRightSidebar
     }
   };
 
+  // Agent Drawer Listener
+  useEffect(() => {
+    const handleOpenDrawer = (event: any) => {
+      const { drawer } = event.detail;
+      if (drawer) {
+        setActiveOption(drawer as SidebarOption);
+        setIsExpanded(true);
+      }
+    };
+    window.addEventListener('open-drawer', handleOpenDrawer);
+    return () => window.removeEventListener('open-drawer', handleOpenDrawer);
+  }, []);
+
   const renderContent = () => {
     switch (activeOption) {
       case "dataDNA":
@@ -40,21 +57,35 @@ export default function WorkspaceRightSidebar({ dataDNA }: WorkspaceRightSidebar
         return (
           <div className="panel-container">
             <h3 className="panel-title" style={{ color: "var(--info)" }}>SQL Analysis</h3>
-            <p className="panel-text">SQL queries and data transformation logic will appear here.</p>
+            {sqlCode ? (
+              <pre className="code-block">
+                <code>{sqlCode}</code>
+              </pre>
+            ) : (
+              <p className="panel-text">SQL queries will appear here when executed.</p>
+            )}
           </div>
         );
       case "python":
         return (
           <div className="panel-container">
             <h3 className="panel-title" style={{ color: "var(--success)" }}>Python Sandbox</h3>
-            <p className="panel-text">Advanced data manipulation and visualization scripts.</p>
+            {pythonCode ? (
+              <pre className="code-block">
+                <code>{pythonCode}</code>
+              </pre>
+            ) : (
+              <p className="panel-text">Python code will appear here when executed.</p>
+            )}
           </div>
         );
       case "context":
-        return (
+        return sessionId ? (
+          <ContextPanel dataDNA={dataDNA} sessionId={sessionId} />
+        ) : (
           <div className="panel-container">
             <h3 className="panel-title" style={{ color: "var(--warning)" }}>Context & Knowledge</h3>
-            <p className="panel-text">Manage domain knowledge and business context for the agent.</p>
+            <p className="panel-text">Session ID required to load context insights.</p>
           </div>
         );
       default:
@@ -194,6 +225,22 @@ export default function WorkspaceRightSidebar({ dataDNA }: WorkspaceRightSidebar
         .sidebar-content::-webkit-scrollbar-thumb {
           background: var(--stroke);
           border-radius: 2px;
+        }
+
+        .code-block {
+          background: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 0.5rem;
+          padding: 1rem;
+          font-family: 'JetBrains Mono', 'Fira Code', monospace;
+          font-size: 0.75rem;
+          line-height: 1.5;
+          overflow-x: auto;
+          color: var(--fg);
+        }
+
+        .code-block code {
+          white-space: pre;
         }
       `}</style>
     </aside>

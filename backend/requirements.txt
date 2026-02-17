@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+supabase
+pandas
+pyarrow
+duckdb
+scipy
+python-dotenv
+pydantic
+httpx
