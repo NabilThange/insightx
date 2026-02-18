@@ -1,113 +1,243 @@
 "use client";
 
-import { useState } from "react";
-import { Send } from "lucide-react";
+/**
+ * ChatInput — Enhanced chat input for InsightX
+ *
+ * Extends the original simple textarea+send with the full PromptInput system:
+ *   - Auto-resizing textarea
+ *   - File attachment support (drag & drop + file picker)
+ *   - Model selector dropdown
+ *   - Web search toggle
+ *   - Submit button with streaming/loading state
+ *   - Keyboard shortcuts (Enter = submit, Shift+Enter = newline)
+ *
+ * Backward-compatible: the `onSend` prop still works as before.
+ *
+ * Design System: DESIGN_SYSTEM.md
+ */
 
-interface ChatInputProps {
-    onSend: (message: string) => void;
-    disabled?: boolean;
+import { useState } from "react";
+import { GlobeIcon } from "lucide-react";
+
+import {
+  PromptInput,
+  PromptInputHeader,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputTools,
+  PromptInputTextarea,
+  PromptInputSubmit,
+  PromptInputButton,
+  PromptInputSelect,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputActionMenu,
+  PromptInputActionMenuTrigger,
+  PromptInputActionMenuContent,
+  PromptInputActionAddAttachments,
+  usePromptInputAttachments,
+  type PromptInputMessage,
+  type ChatStatus,
+} from "@/components/ai-elements/prompt-input";
+
+import {
+  Attachments,
+  Attachment,
+  AttachmentPreview,
+  AttachmentRemove,
+} from "@/components/ai-elements/attachments";
+
+// ─── Model list ───────────────────────────────────────────────────────────────
+
+const MODELS = [
+  { id: "gpt-4o", name: "GPT-4o" },
+  { id: "claude-opus-4-20250514", name: "Claude 4 Opus" },
+  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" },
+];
+
+// ─── Attachment strip (reads from context) ────────────────────────────────────
+
+function AttachmentsDisplay() {
+  const attachments = usePromptInputAttachments();
+  if (attachments.files.length === 0) return null;
+
+  return (
+    <Attachments variant="inline">
+      {attachments.files.map((file) => (
+        <Attachment
+          key={file.id}
+          data={file}
+          onRemove={() => attachments.remove(file.id)}
+        >
+          <AttachmentPreview />
+          {/* Show truncated name */}
+          <span
+            style={{
+              fontSize: "0.75rem",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "7rem",
+            }}
+            title={file.file.name}
+          >
+            {file.file.name.length > 16
+              ? file.file.name.slice(0, 13) + "…"
+              : file.file.name}
+          </span>
+          <AttachmentRemove />
+        </Attachment>
+      ))}
+    </Attachments>
+  );
 }
 
-export default function ChatInput({ onSend, disabled = false }: ChatInputProps) {
-    const [input, setInput] = useState("");
+// ─── Props ────────────────────────────────────────────────────────────────────
 
-    const handleSend = () => {
-        if (!input.trim() || disabled) return;
-        onSend(input);
-        setInput("");
-    };
+interface ChatInputProps {
+  /** Legacy prop — called with the text string when the user submits */
+  onSend?: (message: string) => void;
+  /** Full message callback (text + files). Takes priority over onSend. */
+  onSubmit?: (message: PromptInputMessage) => void;
+  disabled?: boolean;
+  status?: ChatStatus;
+  placeholder?: string;
+  /** Allow file attachments */
+  allowAttachments?: boolean;
+  /** Allow model selection */
+  allowModelSelect?: boolean;
+  /** Allow web search toggle */
+  allowWebSearch?: boolean;
+  /** Show drag-and-drop support */
+  globalDrop?: boolean;
+}
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
+// ─── Component ────────────────────────────────────────────────────────────────
 
-    return (
-        <div className="chat-input-container">
-            <div className="input-wrapper">
-                <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask a follow-up question..."
-                    rows={3}
-                    disabled={disabled}
-                />
-                <button
-                    className="send-btn"
-                    onClick={handleSend}
-                    disabled={!input.trim() || disabled}
-                >
-                    <Send size={20} />
-                </button>
-            </div>
+export default function ChatInput({
+  onSend,
+  onSubmit,
+  disabled = false,
+  status = "idle",
+  placeholder = "Ask InsightX anything…",
+  allowAttachments = true,
+  allowModelSelect = true,
+  allowWebSearch = true,
+  globalDrop = true,
+}: ChatInputProps) {
+  const [text, setText] = useState("");
+  const [model, setModel] = useState(MODELS[0].id);
+  const [webSearch, setWebSearch] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
-            <style jsx>{`
-        .chat-input-container {
-          padding: 1.5rem;
-          border-top: 1px solid var(--border);
-          background-color: var(--bg-surface);
-        }
+  const handleSubmit = (message: PromptInputMessage) => {
+    if (!message.text?.trim() && !message.files?.length) return;
 
-        .input-wrapper {
-          display: flex;
-          gap: 0.75rem;
-          align-items: flex-end;
-        }
+    // Call the appropriate callback
+    if (onSubmit) {
+      onSubmit(message);
+    } else if (onSend && message.text) {
+      onSend(message.text);
+    }
 
-        .input-wrapper textarea {
-          flex: 1;
-          padding: 0.75rem 1rem;
-          background-color: var(--bg-base);
-          border: 1px solid var(--border);
-          border-radius: 0.5rem;
-          font-family: inherit;
-          font-size: 0.875rem;
-          color: var(--text-primary);
-          resize: none;
-          line-height: 1.5;
-          transition: all var(--transition-fast) ease;
-        }
+    setText("");
+  };
 
-        .input-wrapper textarea:focus {
-          outline: none;
-          border-color: var(--accent-blue);
-        }
+  const isDisabled =
+    disabled || (status !== "idle" && status !== "ready" && status !== "error");
 
-        .input-wrapper textarea::placeholder {
-          color: var(--text-muted);
-        }
+  return (
+    <PromptInput
+      onSubmit={handleSubmit}
+      globalDrop={globalDrop && allowAttachments}
+      multiple
+      status={status}
+      style={{ 
+        margin: "0",
+        border: isFocused ? "1px solid var(--accent, #4f46e5)" : "1px solid rgba(0, 0, 0, 0.12)",
+        boxShadow: isFocused ? "0 0 0 3px rgba(79, 70, 229, 0.1)" : "none",
+        transition: "all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1)",
+      }}
+    >
+      {/* Attachment strip */}
+      {allowAttachments && (
+        <PromptInputHeader>
+          <AttachmentsDisplay />
+        </PromptInputHeader>
+      )}
 
-        .input-wrapper textarea:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+      {/* Main textarea */}
+      <PromptInputBody>
+        <PromptInputTextarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholder}
+          disabled={isDisabled}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          style={{
+            fontFamily: "'PP Neue Montreal', system-ui, sans-serif",
+          }}
+        />
+      </PromptInputBody>
 
-        .send-btn {
-          padding: 0.75rem;
-          background-color: var(--accent-blue);
-          color: white;
-          border: none;
-          border-radius: 0.5rem;
-          cursor: pointer;
-          transition: all var(--transition-fast) ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+      {/* Footer toolbar */}
+      <PromptInputFooter>
+        <PromptInputTools>
+          {/* Attachment menu */}
+          {allowAttachments && (
+            <PromptInputActionMenu>
+              <PromptInputActionMenuTrigger />
+              <PromptInputActionMenuContent>
+                <PromptInputActionAddAttachments />
+              </PromptInputActionMenuContent>
+            </PromptInputActionMenu>
+          )}
 
-        .send-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(59, 127, 245, 0.3);
-        }
+          {/* Web search toggle */}
+          {allowWebSearch && (
+            <PromptInputButton
+              onClick={() => setWebSearch(!webSearch)}
+              tooltip={{ content: "Search the web", shortcut: "⌘K" }}
+              variant={webSearch ? "default" : "ghost"}
+              active={webSearch}
+              aria-pressed={webSearch}
+              style={{
+                border: webSearch ? "1px solid var(--accent, #4f46e5)" : "1px solid rgba(0, 0, 0, 0.12)",
+                background: webSearch ? "rgba(79, 70, 229, 0.1)" : "transparent",
+                transition: "all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1)",
+              }}
+            >
+              <GlobeIcon size={14} />
+              <span>Search</span>
+            </PromptInputButton>
+          )}
 
-        .send-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
-        </div>
-    );
+          {/* Model selector */}
+          {allowModelSelect && (
+            <PromptInputSelect value={model} onValueChange={setModel}>
+              <PromptInputSelectTrigger>
+                <PromptInputSelectValue />
+              </PromptInputSelectTrigger>
+              <PromptInputSelectContent>
+                {MODELS.map((m) => (
+                  <PromptInputSelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </PromptInputSelectItem>
+                ))}
+              </PromptInputSelectContent>
+            </PromptInputSelect>
+          )}
+        </PromptInputTools>
+
+        {/* Submit / stop button */}
+        <PromptInputSubmit
+          status={status}
+          disabled={isDisabled || (!text.trim())}
+        />
+      </PromptInputFooter>
+    </PromptInput>
+  );
 }

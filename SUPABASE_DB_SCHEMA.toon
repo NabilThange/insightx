@@ -1,8 +1,23 @@
-[21]{table_schema,table_name,column_name,ordinal_position,data_type,character_maximum_length,is_nullable,column_default,is_primary_key,foreign_table_schema,foreign_table_name,foreign_column_name,fk_constraint_name},
+[47]{table_schema,table_name,column_name,ordinal_position,data_type,character_maximum_length,is_nullable,column_default,is_primary_key,foreign_table_schema,foreign_table_name,foreign_column_name,fk_constraint_name},
   public,chats,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
   public,chats,session_id,2,uuid,null,NO,null,NO,public,sessions,id,chats_session_id_fkey
   public,chats,title,3,text,null,YES,null,NO,null,null,null,null
   public,chats,created_at,4,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,context_insights,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
+  public,context_insights,session_id,2,uuid,null,NO,null,NO,public,sessions,id,context_insights_session_id_fkey
+  public,context_insights,dataset_name,3,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,purpose,4,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,domain,5,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,key_entities,6,ARRAY,null,NO,'{}',,text[],NO,null,null,null,null
+  public,context_insights,use_cases,7,ARRAY,null,NO,'{}',,text[],NO,null,null,null,null
+  public,context_insights,audience,8,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,business_value,9,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,data_health,10,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,key_insights,11,ARRAY,null,NO,'{}',,text[],NO,null,null,null,null
+  public,context_insights,recommended_analyses,12,ARRAY,null,NO,'{}',,text[],NO,null,null,null,null
+  public,context_insights,context_summary,13,text,null,NO,null,NO,null,null,null,null
+  public,context_insights,created_at,14,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,context_insights,updated_at,15,timestamp with time zone,null,YES,now(),NO,null,null,null,null
   public,messages,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
   public,messages,chat_id,2,uuid,null,NO,null,NO,public,chats,id,messages_chat_id_fkey
   public,messages,role,3,text,null,NO,null,NO,null,null,null,null
@@ -20,3 +35,14 @@
   public,users,email,2,text,null,NO,null,NO,null,null,null,null
   public,users,name,3,text,null,YES,null,NO,null,null,null,null
   public,users,created_at,4,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,workspace_sidebar,id,1,uuid,null,NO,gen_random_uuid(),YES,null,null,null,null
+  public,workspace_sidebar,session_id,2,uuid,null,NO,null,NO,public,sessions,id,workspace_sidebar_session_id_fkey
+  public,workspace_sidebar,data_dna,3,jsonb,null,YES,null,NO,null,null,null,null
+  public,workspace_sidebar,context_analysis,4,jsonb,null,YES,null,NO,null,null,null,null
+  public,workspace_sidebar,current_sql_code,5,text,null,YES,null,NO,null,null,null,null
+  public,workspace_sidebar,sql_code_history,6,jsonb,null,YES,'[]',,jsonb,NO,null,null,null,null
+  public,workspace_sidebar,current_python_code,7,text,null,YES,null,NO,null,null,null,null
+  public,workspace_sidebar,python_code_history,8,jsonb,null,YES,'[]',,jsonb,NO,null,null,null,null
+  public,workspace_sidebar,created_at,9,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,workspace_sidebar,updated_at,10,timestamp with time zone,null,YES,now(),NO,null,null,null,null
+  public,workspace_sidebar,filename,11,text,null,NO,null,NO,null,null,null,null

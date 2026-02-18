@@ -11,7 +11,13 @@
   "dependencies": {
     "@ark-ui/react": "^5.31.0",
     "@gsap/react": "^2.1.2",
+    "@radix-ui/react-use-controllable-state": "^1.2.2",
+    "@streamdown/cjk": "^1.0.2",
+    "@streamdown/code": "^1.0.2",
+    "@streamdown/math": "^1.0.2",
+    "@streamdown/mermaid": "^1.0.2",
     "@supabase/supabase-js": "^2.95.3",
+    "ai": "^6.0.90",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.0",
@@ -26,6 +32,7 @@
     "react-syntax-highlighter": "^16.1.0",
     "recharts": "^3.7.0",
     "remark-gfm": "^4.0.1",
+    "streamdown": "^2.2.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.11"

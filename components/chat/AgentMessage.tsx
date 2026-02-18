@@ -1,13 +1,12 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { motion } from "framer-motion";
 import AgentBadge from "./AgentBadge";
 import ThinkingProcess from "./ThinkingProcess";
 import CodeBlock from "../data/CodeBlock";
 import InsightCard from "../data/InsightCard";
 import ComposerResponseRenderer from "./ComposerResponseRenderer";
+import { MessageResponse } from "@/components/ai-elements/message";
 import { parseComposerResponse, isComposerResponse } from "@/lib/utils/response-parser";
 import type { Message } from "@/store/chatStore";
 
@@ -45,41 +44,33 @@ export default function AgentMessage({ message, onFollowUpClick }: AgentMessageP
             onFollowUpClick={onFollowUpClick}
           />
         ) : (
-          /* Fallback: Regular Markdown Content */
+          /* Fallback: MessageResponse (streamdown — GFM, math, code, streaming) */
           message.content && (
-            <div className="markdown-content">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  pre: ({ children }) => <>{children}</>,
-                  code({ node, inline, className, children, ...props }: any) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    const codeContent = String(children).replace(/\n$/, "");
-
-                    if (!inline) {
-                      return (
-                        <CodeBlock
-                          language={match ? match[1] : "text"}
-                          code={codeContent}
-                        />
-                      );
-                    }
-                    return (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  table: ({ children }) => (
-                    <div className="table-wrapper">
-                      <table>{children}</table>
-                    </div>
-                  ),
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
+            <MessageResponse
+              parseIncompleteMarkdown={true}
+              components={{
+                p: ({ children, ...props }: any) => (
+                  <p style={{ marginBottom: '0.75rem', color: 'var(--fg)', lineHeight: 1.65 }} {...props}>{children}</p>
+                ),
+                strong: ({ children }: any) => (
+                  <strong style={{ fontWeight: 650, color: 'var(--fg)' }}>{children}</strong>
+                ),
+                h1: ({ children }: any) => (
+                  <h1 style={{ fontSize: '1.5rem', fontWeight: 600, letterSpacing: '-0.025em', color: 'var(--fg)', margin: '1.25rem 0 0.5rem', borderBottom: '1px solid var(--stroke)', paddingBottom: '0.5rem' }}>{children}</h1>
+                ),
+                h2: ({ children }: any) => (
+                  <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--fg)', margin: '1rem 0 0.375rem' }}>{children}</h2>
+                ),
+                h3: ({ children }: any) => (
+                  <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--fg)', margin: '0.875rem 0 0.25rem' }}>{children}</h3>
+                ),
+                a: ({ href, children }: any) => (
+                  <a href={href} style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }} target="_blank" rel="noopener noreferrer">{children}</a>
+                ),
+              }}
+            >
+              {message.content}
+            </MessageResponse>
           )
         )}
 
@@ -118,98 +109,6 @@ export default function AgentMessage({ message, onFollowUpClick }: AgentMessageP
           display: flex;
           flex-direction: column;
           gap: 0.75rem;
-        }
-
-        /* Markdown Styles */
-        .markdown-content {
-          font-size: 0.875rem;
-          line-height: 1.6;
-          color: var(--fg);
-        }
-
-        .markdown-content :global(p) {
-          margin-bottom: 0.75rem;
-        }
-
-        .markdown-content :global(p:last-child) {
-          margin-bottom: 0;
-        }
-
-        .markdown-content :global(a) {
-          color: var(--accent);
-          text-decoration: underline;
-          text-underline-offset: 2px;
-        }
-
-        .markdown-content :global(ul), .markdown-content :global(ol) {
-          margin-left: 1.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .markdown-content :global(li) {
-          margin-bottom: 0.25rem;
-        }
-
-        .markdown-content :global(h1), 
-        .markdown-content :global(h2), 
-        .markdown-content :global(h3), 
-        .markdown-content :global(h4) {
-          font-weight: 600;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-          color: var(--fg);
-        }
-
-        .markdown-content :global(h1) { font-size: 1.5rem; }
-        .markdown-content :global(h2) { font-size: 1.25rem; }
-        .markdown-content :global(h3) { font-size: 1.125rem; }
-
-        .markdown-content :global(blockquote) {
-          border-left: 3px solid var(--stroke);
-          padding-left: 1rem;
-          margin-left: 0;
-          margin-bottom: 0.75rem;
-          color: var(--text-muted);
-          font-style: italic;
-        }
-
-        .markdown-content :global(code) {
-          background-color: var(--bg-surface);
-          padding: 0.2rem 0.4rem;
-          border-radius: 0.25rem;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 0.8em;
-          color: var(--accent);
-        }
-
-        .markdown-content :global(.table-wrapper) {
-          overflow-x: auto;
-          margin-bottom: 1rem;
-          border: 1px solid var(--stroke);
-          border-radius: 0.5rem;
-        }
-
-        .markdown-content :global(table) {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 0.875rem;
-        }
-
-        .markdown-content :global(th) {
-          background-color: var(--bg-surface);
-          text-align: left;
-          padding: 0.75rem.1rem;
-          border-bottom: 1px solid var(--stroke);
-          font-weight: 600;
-        }
-
-        .markdown-content :global(td) {
-          padding: 0.75rem 1rem;
-          border-bottom: 1px solid var(--stroke);
-        }
-
-        .markdown-content :global(tr:last-child td) {
-          border-bottom: none;
         }
 
         .insights-row {

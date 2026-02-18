@@ -282,10 +282,20 @@ function OverviewSection({ d }: { d: DataDNA }) {
 // ─── Section: Columns ─────────────────────────────────────────────────────────
 
 function NumericStats({ col }: { col: any }) {
+    // Normalize snake_case to camelCase for column stats
+    const normalizedCol = {
+        ...col,
+        topValuePct: col.top_value_pct ?? col.topValuePct,
+        topValueCount: col.top_value_count ?? col.topValueCount,
+        outlierCountIqr: col.outlier_count_iqr ?? col.outlierCountIqr,
+        outlierPct: col.outlier_pct ?? col.outlierPct,
+        zerosPct: col.zeros_pct ?? col.zerosPct,
+    };
+    
     const pairs = [
-        ["Mean", col.mean], ["Median", col.median],
-        ["Std", col.std], ["Min", col.min],
-        ["Max", col.max], ["IQR", col.iqr],
+        ["Mean", normalizedCol.mean], ["Median", normalizedCol.median],
+        ["Std", normalizedCol.std], ["Min", normalizedCol.min],
+        ["Max", normalizedCol.max], ["IQR", normalizedCol.iqr],
     ];
     return (
         <div style={{ paddingTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
@@ -308,20 +318,20 @@ function NumericStats({ col }: { col: any }) {
                 ))}
             </div>
             <div style={{ display: "flex", gap: "1rem", fontSize: "0.65rem", color: T.muted }}>
-                <span>Skew: <b style={{ color: Math.abs(col.skewness) > 2 ? T.warning : T.fg }}>
-                    {col.skewness?.toFixed(2)}</b>
+                <span>Skew: <b style={{ color: Math.abs(normalizedCol.skewness) > 2 ? T.warning : T.fg }}>
+                    {normalizedCol.skewness?.toFixed(2)}</b>
                 </span>
-                <span>Kurt: <b style={{ color: T.fg }}>{col.kurtosis?.toFixed(2)}</b></span>
-                {col.zerosPct > 0 && <span>Zeros: <b style={{ color: T.fg }}>{col.zerosPct}%</b></span>}
+                <span>Kurt: <b style={{ color: T.fg }}>{normalizedCol.kurtosis?.toFixed(2)}</b></span>
+                {normalizedCol.zerosPct > 0 && <span>Zeros: <b style={{ color: T.fg }}>{normalizedCol.zerosPct}%</b></span>}
             </div>
-            {col.outlierCountIqr > 0 && (
+            {normalizedCol.outlierCountIqr > 0 && (
                 <div style={{
                     background: "rgba(185,28,28,0.06)", border: `1px solid rgba(185,28,28,0.18)`,
                     borderRadius: "0.5rem", padding: "0.375rem 0.625rem",
                     fontSize: "0.68rem", color: T.error, display: "flex", alignItems: "center", gap: "0.375rem",
                 }}>
                     <AlertTriangle size={10} />
-                    {col.outlierCountIqr} outliers ({col.outlierPct}% of data)
+                    {normalizedCol.outlierCountIqr} outliers ({normalizedCol.outlierPct}% of data)
                 </div>
             )}
             {/* Mini percentile rail */}
@@ -336,9 +346,9 @@ function NumericStats({ col }: { col: any }) {
                 </div>
                 <div style={{ position: "relative", height: 6, background: T.stroke, borderRadius: 99, overflow: "hidden" }}>
                     {["p25", "median", "p75"].map((k, i) => {
-                        const range = (col.max || 0) - (col.min || 0);
+                        const range = (normalizedCol.max || 0) - (normalizedCol.min || 0);
                         if (!range) return null;
-                        const pct = ((col[k] - col.min) / range) * 100;
+                        const pct = ((normalizedCol[k] - normalizedCol.min) / range) * 100;
                         const colors = ["var(--accent)", "var(--accent)", "var(--accent)"];
                         return (
                             <div key={k} style={{
@@ -354,24 +364,34 @@ function NumericStats({ col }: { col: any }) {
 }
 
 function CatStats({ col }: { col: any }) {
-    const maxCount = col.top_value_count || 1;
+    // Normalize snake_case to camelCase
+    const normalizedCol = {
+        ...col,
+        topValues: col.top_values ?? col.topValues,
+        topValuePct: col.top_value_pct ?? col.topValuePct,
+        topValueCount: col.top_value_count ?? col.topValueCount,
+        isDominated: col.is_dominated ?? col.isDominated,
+        rareValues: col.rare_values ?? col.rareValues,
+    };
+    
+    const maxCount = normalizedCol.topValueCount || 1;
     return (
         <div style={{ paddingTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {col.topValues?.map((v: string, i: number) => (
+            {normalizedCol.topValues?.map((v: string, i: number) => (
                 <div key={v} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <span style={{ fontSize: "0.6rem", color: T.muted, width: 14, flexShrink: 0 }}>#{i + 1}</span>
                     <span style={{
                         fontSize: "0.7rem", color: T.fg, flex: 1, overflow: "hidden",
                         textOverflow: "ellipsis", whiteSpace: "nowrap"
                     }}>{v}</span>
-                    <Bar value={i === 0 ? col.topValuePct : col.topValuePct / (i + 1.5)}
+                    <Bar value={i === 0 ? normalizedCol.topValuePct : normalizedCol.topValuePct / (i + 1.5)}
                         max={100} color="var(--accent)" height={3} />
                 </div>
             ))}
             <div style={{ display: "flex", gap: "1rem", fontSize: "0.65rem", color: T.muted, paddingTop: "0.25rem" }}>
-                <span>Entropy: <b style={{ color: T.fg }}>{col.entropy?.toFixed(2)}</b></span>
-                {col.isDominated && <Pill label="Dominated" color={T.error} bg="rgba(185,28,28,0.08)" />}
-                {col.rareValues > 0 && <span>Rare: <b style={{ color: T.fg }}>{col.rareValues}</b></span>}
+                <span>Entropy: <b style={{ color: T.fg }}>{normalizedCol.entropy?.toFixed(2)}</b></span>
+                {normalizedCol.isDominated && <Pill label="Dominated" color={T.error} bg="rgba(185,28,28,0.08)" />}
+                {normalizedCol.rareValues > 0 && <span>Rare: <b style={{ color: T.fg }}>{normalizedCol.rareValues}</b></span>}
             </div>
         </div>
     );
@@ -428,10 +448,19 @@ function ColumnsSection({ d }: { d: DataDNA }) {
 
             {/* Cards */}
             {filtered.map((col: any) => {
-                const dotColor = TYPE_DOTS[col.type] ?? T.muted;
-                const roleStyle = ROLE_BG[col.suggested_role] ?? { bg: T.loaderBg, color: T.muted };
+                // Normalize snake_case to camelCase for column properties
+                const normalizedCol = {
+                    ...col,
+                    suggestedRole: col.suggested_role ?? col.suggestedRole,
+                    uniqueCount: col.unique_count ?? col.uniqueCount,
+                    nullPercentage: col.null_pct ?? col.nullPercentage,
+                    topValues: col.top_values ?? col.topValues,
+                };
+                
+                const dotColor = TYPE_DOTS[normalizedCol.type] ?? T.muted;
+                const roleStyle = ROLE_BG[normalizedCol.suggestedRole] ?? { bg: T.loaderBg, color: T.muted };
                 return (
-                    <Accordion key={col.name} title={col.name}>
+                    <Accordion key={normalizedCol.name} title={normalizedCol.name}>
                         {/* Card header meta */}
                         <div style={{
                             display: "flex", gap: "0.375rem", marginBottom: "0.375rem",
@@ -443,10 +472,10 @@ function ColumnsSection({ d }: { d: DataDNA }) {
                                     fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.06em",
                                     color: dotColor, textTransform: "uppercase",
                                     background: dotColor + "15", padding: "1px 6px", borderRadius: 4,
-                                }}>{TYPE_LABEL[col.type] ?? col.type}</span>
+                                }}>{TYPE_LABEL[normalizedCol.type] ?? normalizedCol.type}</span>
                             </div>
                             <Pill
-                                label={col.suggested_role?.replace(/_/g, " ") || "—"}
+                                label={normalizedCol.suggestedRole?.replace(/_/g, " ") || "—"}
                                 color={roleStyle.color}
                                 bg={roleStyle.bg}
                             />
@@ -454,14 +483,14 @@ function ColumnsSection({ d }: { d: DataDNA }) {
                                 fontSize: "0.65rem", fontFamily: "monospace",
                                 color: T.muted, background: T.loaderBg,
                                 padding: "1px 5px", borderRadius: 4
-                            }}>{col.dtype}</span>
+                            }}>{normalizedCol.dtype}</span>
                             <span style={{ marginLeft: "auto", fontSize: "0.65rem", color: T.muted }}>
-                                {col.uniqueCount?.toLocaleString()} unique
+                                {normalizedCol.uniqueCount?.toLocaleString()} unique
                             </span>
                         </div>
 
                         {/* Null bar */}
-                        {col.nullPercentage > 0 && (
+                        {normalizedCol.nullPercentage > 0 && (
                             <div style={{
                                 display: "flex", alignItems: "center", gap: "0.5rem",
                                 marginBottom: "0.375rem"
@@ -469,22 +498,22 @@ function ColumnsSection({ d }: { d: DataDNA }) {
                                 <span style={{ fontSize: "0.6rem", color: T.muted, width: 40 }}>
                                     nulls
                                 </span>
-                                <Bar value={col.nullPercentage} max={100}
-                                    color={col.nullPercentage > 30 ? T.error : col.nullPercentage > 10 ? T.warning : T.mutedMd}
+                                <Bar value={normalizedCol.nullPercentage} max={100}
+                                    color={normalizedCol.nullPercentage > 30 ? T.error : normalizedCol.nullPercentage > 10 ? T.warning : T.mutedMd}
                                     height={3} />
                                 <span style={{
                                     fontSize: "0.65rem", fontWeight: 600,
-                                    color: col.nullPercentage > 30 ? T.error : T.muted, width: 32, textAlign: "right"
+                                    color: normalizedCol.nullPercentage > 30 ? T.error : T.muted, width: 32, textAlign: "right"
                                 }}>
-                                    {col.nullPercentage}%
+                                    {normalizedCol.nullPercentage}%
                                 </span>
                             </div>
                         )}
 
-                        {col.type === "numeric" && <NumericStats col={col} />}
-                        {(col.type === "categorical" || col.type === "boolean") && <CatStats col={col} />}
-                        {col.type === "datetime" && <DateStats col={col} />}
-                        {col.type === "categorical_numeric" && <CatStats col={col} />}
+                        {normalizedCol.type === "numeric" && <NumericStats col={normalizedCol} />}
+                        {(normalizedCol.type === "categorical" || normalizedCol.type === "boolean") && <CatStats col={normalizedCol} />}
+                        {normalizedCol.type === "datetime" && <DateStats col={normalizedCol} />}
+                        {normalizedCol.type === "categorical_numeric" && <CatStats col={normalizedCol} />}
                     </Accordion>
                 );
             })}

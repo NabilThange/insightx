@@ -6,6 +6,7 @@ import ChatPanel from "@/components/workspace/ChatPanel";
 import WorkspaceRightSidebar from "@/components/workspace/WorkspaceRightSidebar";
 import WorkspaceLayout from "@/components/workspace/WorkspaceLayout";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { WorkspaceSidebarService } from "@/lib/db/sidebar";
 
 import {
   getSession,
@@ -33,7 +34,6 @@ export default function ActiveWorkspacePage({
   const { id: workspaceId } = use(params);
   const chatIdFromUrl = searchParams.get("chat");
 
-  const [input, setInput] = useState("");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
@@ -41,8 +41,6 @@ export default function ActiveWorkspacePage({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sqlHistory, setSqlHistory] = useState<string[]>([]);
-  const [currentSqlCode, setCurrentSqlCode] = useState<string>("");
-  const [currentPythonCode, setCurrentPythonCode] = useState<string>("");
   const scrollRef = useRef<any>(null);
 
   // Load session and chats
@@ -156,8 +154,8 @@ export default function ActiveWorkspacePage({
     loadMessages();
   }, [activeChatId, sessionData, workspaceId]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !sessionData) return;
+  const handleSendText = async (text: string) => {
+    if (!text.trim() || !sessionData) return;
 
     try {
       let chatId = activeChatId;
@@ -166,7 +164,7 @@ export default function ActiveWorkspacePage({
       if (!chatId) {
         const newChat = await createChatInSupabase(
           sessionData.id,
-          input.slice(0, 50)
+          text.slice(0, 50)
         );
         chatId = newChat.id;
         setActiveChatId(chatId);
@@ -180,27 +178,22 @@ export default function ActiveWorkspacePage({
 
       // Save user message
       if (chatId) {
-        await createMessage(chatId, "user", input);
+        await createMessage(chatId, "user", text);
       }
-      const userInput = input;
-      setInput("");
 
       // Reload messages to show user message
       if (chatId) {
         const updatedMessages = await getMessages(chatId);
         setMessages(
           updatedMessages.map((msg) => {
-            // Parse content if it's a string (JSON)
             let parsedContent = msg.content;
             if (typeof msg.content === "string") {
               try {
                 parsedContent = JSON.parse(msg.content);
               } catch (e) {
-                // If parsing fails, keep as string
                 parsedContent = msg.content;
               }
             }
-
             return {
               id: msg.id,
               sessionId: sessionData.id,
@@ -214,64 +207,106 @@ export default function ActiveWorkspacePage({
 
       // Stream AI response via SSE
       setIsStreaming(true);
-      let assistantContent = "";
+
+      // Create a live placeholder message that accumulates thinking steps
+      const streamingMsgId = `streaming_${Date.now()}`;
+      const streamingMsg: Message = {
+        id: streamingMsgId,
+        sessionId: sessionData.id,
+        type: "orchestrator",
+        content: "",
+        thinking: [],
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, streamingMsg]);
+
+      let thinkingSteps: string[] = [];
 
       try {
         if (chatId) {
           for await (const event of chatStream(
             chatId,
             sessionData.id,
-            userInput,
+            text,
             messages.map((m) => ({ role: m.type, content: m.content }))
           )) {
-            console.log("[handleSend] Received event:", event.type, event);
+            console.log("[handleSendText] Received event:", event.type, event);
 
             if (event.type === "status") {
+              // Append thinking step to live message
+              thinkingSteps = [...thinkingSteps, event.message];
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamingMsgId
+                    ? { ...m, thinking: thinkingSteps }
+                    : m
+                )
+              );
               logger.orchestrator(`Thinking: ${event.message}`);
             } else if (event.type === "toast") {
-              // Handle agent selection toast
+              // Also add toast messages as thinking steps for richer context
+              thinkingSteps = [...thinkingSteps, event.message];
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamingMsgId
+                    ? { ...m, thinking: thinkingSteps }
+                    : m
+                )
+              );
               showToast.agent(event.message, event.data?.reasoning);
             } else if (event.type === "orchestrator_result") {
               logger.orchestrator("Intent Classified", event.data.classification);
             } else if (event.type === "code_written") {
-              // Handle code written to sidebar
               const { code, language } = event.data;
-              if (language === 'sql') {
-                setCurrentSqlCode(code);
-              } else if (language === 'python') {
-                setCurrentPythonCode(code);
+              try {
+                if (language === 'sql') {
+                  await WorkspaceSidebarService.updateSQLCode(sessionData.id, code, true);
+                } else if (language === 'python') {
+                  await WorkspaceSidebarService.updatePythonCode(sessionData.id, code, true);
+                }
+                logger.tool(`${language.toUpperCase()} Code Saved`, { length: code.length });
+                showToast.agent(`📝 ${language.toUpperCase()} code saved to sidebar`, `${code.length} characters`);
+              } catch (error) {
+                console.error(`Failed to save ${language} code:`, error);
+                showToast.agent(`⚠️ Failed to save ${language} code`, 'Code will not persist');
               }
-              logger.tool(`${language.toUpperCase()} Code Written`, { length: code.length });
-              showToast.agent(`📝 ${language.toUpperCase()} code written to sidebar`, `${code.length} characters`);
             } else if (event.type === "sql_result") {
               logger.tool("SQL Analysis Executed", { query: event.data.query });
               showToast.agent("✅ SQL Query executed successfully", `${event.data.results?.rows?.length || 0} rows returned`);
-              
-              // Add SQL query to history
               if (event.data.query) {
-                setSqlHistory(prev => {
-                  const newHistory = [event.data.query, ...prev];
-                  // Keep only last 10 queries
-                  return newHistory.slice(0, 10);
-                });
+                setSqlHistory(prev => [event.data.query, ...prev].slice(0, 10));
               }
             } else if (event.type === "python_result") {
               logger.tool("Python Script Executed", { results: event.data.results });
               showToast.agent("✅ Python analysis completed", "Results ready for synthesis");
             } else if (event.type === "final_response") {
-              // Store the full response data for proper rendering
-              assistantContent = event.data;
               logger.orchestrator("Final response received");
+              // Remove the streaming placeholder — final messages loaded from DB below
+              setMessages((prev) => prev.filter((m) => m.id !== streamingMsgId));
             } else if (event.type === "error") {
               logger.error("Orchestrator", event.message);
-              assistantContent = `Error: ${event.message}`;
+              // Replace placeholder with error message
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamingMsgId
+                    ? { ...m, content: `Error: ${event.message}`, thinking: thinkingSteps }
+                    : m
+                )
+              );
               showToast.error("❌ Error during analysis", event.message);
             }
           }
         }
       } catch (streamError) {
-        console.error("[handleSend] Stream error:", streamError);
-        assistantContent = `Failed to get response: ${streamError}`;
+        console.error("[handleSendText] Stream error:", streamError);
+        // Replace placeholder with error
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamingMsgId
+              ? { ...m, content: `Failed to get response: ${streamError}`, thinking: thinkingSteps }
+              : m
+          )
+        );
       }
 
       setIsStreaming(false);
@@ -281,23 +316,18 @@ export default function ActiveWorkspacePage({
         const finalMessages = await getMessages(chatId);
         setMessages(
           finalMessages.map((msg) => {
-            // Parse content if it's a string (JSON)
             let parsedContent = msg.content;
             if (typeof msg.content === "string") {
               try {
                 parsedContent = JSON.parse(msg.content);
               } catch (e) {
-                // If parsing fails, keep as string
                 parsedContent = msg.content;
               }
             }
-
             return {
               id: msg.id,
               sessionId: sessionData.id,
               type: msg.role === "user" ? "user" : "orchestrator",
-              // Keep the full parsed object if it has a text field (Composer response)
-              // Otherwise extract just the text or use the string
               content: parsedContent,
               timestamp: new Date(msg.created_at),
             };
@@ -311,19 +341,8 @@ export default function ActiveWorkspacePage({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   const handleFollowUpClick = (question: string) => {
-    setInput(question);
-    // Auto-submit the follow-up question
-    setTimeout(() => {
-      handleSend();
-    }, 100);
+    handleSendText(question);
   };
 
   const handleChatsUpdate = async () => {
@@ -417,22 +436,16 @@ export default function ActiveWorkspacePage({
         <ChatPanel
           messages={messages}
           dataDNA={formattedDNA}
-          input={input}
-          setInput={setInput}
-          handleSend={handleSend}
-          handleKeyDown={handleKeyDown}
+          onSendMessage={handleSendText}
           isStreaming={isStreaming}
           scrollRef={scrollRef}
           onFollowUpClick={handleFollowUpClick}
         />
 
         {/* RIGHT SIDEBAR - DATA PROFILING */}
-        {formattedDNA && (
-          <WorkspaceRightSidebar 
-            dataDNA={formattedDNA} 
-            sqlCode={currentSqlCode}
-            pythonCode={currentPythonCode}
-            sessionId={sessionData?.id || workspaceId}
+        {sessionData?.id && (
+          <WorkspaceRightSidebar
+            sessionId={sessionData.id}
           />
         )}
       </WorkspaceLayout>

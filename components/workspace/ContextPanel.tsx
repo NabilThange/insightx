@@ -18,53 +18,71 @@ interface ContextData {
 }
 
 interface ContextPanelProps {
-  dataDNA: any;
+  contextData: ContextData | null;
   sessionId: string;
+  onRefresh?: () => void;
 }
 
-export default function ContextPanel({ dataDNA, sessionId }: ContextPanelProps) {
-  const [context, setContext] = useState<ContextData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function ContextPanel({ contextData: initialContextData, sessionId, onRefresh }: ContextPanelProps) {
+  const [context, setContext] = useState<ContextData | null>(initialContextData);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchContext = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Call the context agent API
-        const response = await fetch("/api/agents/context", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch context: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data.success) {
-          throw new Error(data.error || "Failed to analyze context");
-        }
-
-        setContext(data.response);
-      } catch (err) {
-        console.error("Error fetching context:", err);
-        setError(err instanceof Error ? err.message : "Failed to load context");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (dataDNA && sessionId) {
-      fetchContext();
+    // If we already have context data, use it
+    if (initialContextData) {
+      setContext(initialContextData);
+      setLoading(false);
+      return;
     }
-  }, [dataDNA, sessionId]);
+
+    // Don't auto-fetch on mount - context should be pre-generated during upload
+    // User can manually trigger analysis if needed
+    console.log('ℹ️ [ContextPanel] No context data provided, waiting for manual trigger or upload completion');
+    setLoading(false);
+  }, [initialContextData]);
+
+  const handleAnalyzeContext = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🚀 [ContextPanel] Manually triggering context analysis...');
+
+      // Call the context agent API
+      const response = await fetch("/api/agents/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch context: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || "Failed to analyze context");
+      }
+
+      if (data.cached) {
+        console.log('✅ [ContextPanel] Received cached context data');
+      } else {
+        console.log('✅ [ContextPanel] Received fresh context data');
+      }
+
+      setContext(data.response);
+      onRefresh?.(); // Notify parent to refresh sidebar data
+    } catch (err) {
+      console.error("Error fetching context:", err);
+      setError(err instanceof Error ? err.message : "Failed to load context");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,7 +111,36 @@ export default function ContextPanel({ dataDNA, sessionId }: ContextPanelProps) 
     return (
       <div className="panel-container">
         <h3 className="panel-title" style={{ color: "var(--warning)" }}>Context & Knowledge</h3>
-        <p className="panel-text">No context data available.</p>
+        <p className="panel-text">No context analysis available yet.</p>
+        <button
+          onClick={handleAnalyzeContext}
+          disabled={loading}
+          className="analyze-button"
+        >
+          {loading ? "Analyzing..." : "Analyze Context"}
+        </button>
+        <style jsx>{`
+          .analyze-button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .analyze-button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+          }
+          .analyze-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        `}</style>
       </div>
     );
   }

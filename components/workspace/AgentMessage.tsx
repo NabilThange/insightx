@@ -1,11 +1,18 @@
 "use client";
 
+import React from "react";
+
 import { motion } from "framer-motion";
-import { Sparkles, Terminal, Database, Shield, Layout, Fingerprint, Info, ChevronRight } from "lucide-react";
+import { Sparkles, Terminal, Database, Shield, CheckIcon, Loader2, Fingerprint, ChevronRight } from "lucide-react";
 import CodeBlock from "../data/CodeBlock";
 import InsightCard from "../data/InsightCard";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { MessageResponse } from "@/components/ai-elements/message";
+import {
+    ChainOfThought,
+    ChainOfThoughtHeader,
+    ChainOfThoughtContent,
+    ChainOfThoughtStep,
+} from "@/components/ai-elements/chain-of-thought";
 import type { Message } from "@/store/chatStore";
 import ComposerResponseRenderer from "../chat/ComposerResponseRenderer";
 import { parseComposerResponse, isComposerResponse } from "@/lib/utils/response-parser";
@@ -13,9 +20,11 @@ import { parseComposerResponse, isComposerResponse } from "@/lib/utils/response-
 interface AgentMessageProps {
     message: Message;
     onFollowUpClick?: (question: string) => void;
+    /** True when this is the last message and thinking is actively streaming */
+    isThinkingStreaming?: boolean;
 }
 
-export default function AgentMessage({ message, onFollowUpClick }: AgentMessageProps) {
+export default function AgentMessage({ message, onFollowUpClick, isThinkingStreaming = false }: AgentMessageProps) {
     const { type, content, thinking, code, insight } = message;
 
     const openDrawer = (drawer: string) => {
@@ -44,8 +53,8 @@ export default function AgentMessage({ message, onFollowUpClick }: AgentMessageP
     const composerResponse = isStructuredResponse ? content : null;
 
     // If it's a string, check if it's a Composer response wrapped in markdown
-    const parsedComposerResponse = typeof content === 'string' && isComposerResponse(content) 
-        ? parseComposerResponse(content) 
+    const parsedComposerResponse = typeof content === 'string' && isComposerResponse(content)
+        ? parseComposerResponse(content)
         : null;
 
     const finalComposerResponse = composerResponse || parsedComposerResponse;
@@ -65,48 +74,81 @@ export default function AgentMessage({ message, onFollowUpClick }: AgentMessageP
             </div>
 
             <div className="message-body">
-                {/* Thinking Process */}
-                {thinking && thinking.length > 0 && (
-                    <div className="thinking-process">
-                        {thinking.map((step, i) => (
-                            <div key={i} className="thinking-step">
-                                <span className="dot" />
-                                {step}
-                            </div>
-                        ))}
-                    </div>
-                )}
+                {/* Thinking Process — ChainOfThought collapsible block */}
+                {thinking && thinking.length > 0 && (() => {
+                    // A LucideIcon-compatible spinning loader for the active step
+                    const SpinningLoader = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+                        <Loader2 className={`${className ?? ""} animate-spin`} {...props as any} />
+                    );
+
+                    return (
+                        <ChainOfThought defaultOpen={isThinkingStreaming}>
+                            <ChainOfThoughtHeader>
+                                {isThinkingStreaming
+                                    ? "Thinking…"
+                                    : `Reasoned through ${thinking.length} step${thinking.length !== 1 ? "s" : ""}`
+                                }
+                            </ChainOfThoughtHeader>
+                            <ChainOfThoughtContent>
+                                {thinking.map((step, i) => {
+                                    const isLast = i === thinking.length - 1;
+                                    const status = isThinkingStreaming && isLast ? "active" : "complete";
+                                    const Icon = isThinkingStreaming && isLast ? SpinningLoader : CheckIcon;
+                                    return (
+                                        <ChainOfThoughtStep
+                                            key={i}
+                                            icon={Icon as any}
+                                            label={step}
+                                            status={status}
+                                        />
+                                    );
+                                })}
+                            </ChainOfThoughtContent>
+                        </ChainOfThought>
+                    );
+                })()}
 
                 {/* Direct Answer with Markdown Support or Composer Response */}
                 {finalComposerResponse ? (
                     <div className="composer-response">
-                        <ComposerResponseRenderer 
-                            response={finalComposerResponse} 
+                        <ComposerResponseRenderer
+                            response={finalComposerResponse}
                             onFollowUpClick={onFollowUpClick}
                         />
                     </div>
                 ) : (
                     <div className="direct-answer">
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
+                        <MessageResponse
+                            parseIncompleteMarkdown={true}
                             components={{
-                                code({ node, inline, className, children, ...props }: any) {
-                                    const match = /language-(\w+)/.exec(className || "");
-                                    return !inline && match ? (
-                                        <CodeBlock
-                                            code={String(children).replace(/\n$/, "")}
-                                            language={match[1]}
-                                        />
-                                    ) : (
-                                        <code className={className} {...props}>
-                                            {children}
-                                        </code>
-                                    );
-                                },
+                                p: ({ children, ...props }: any) => (
+                                    <p className="md-p" {...props}>{children}</p>
+                                ),
+                                strong: ({ children }: any) => (
+                                    <strong className="md-strong">{children}</strong>
+                                ),
+                                h1: ({ children }: any) => (
+                                    <h1 className="md-h1">{children}</h1>
+                                ),
+                                h2: ({ children }: any) => (
+                                    <h2 className="md-h2">{children}</h2>
+                                ),
+                                h3: ({ children }: any) => (
+                                    <h3 className="md-h3">{children}</h3>
+                                ),
+                                h4: ({ children }: any) => (
+                                    <h4 className="md-h4">{children}</h4>
+                                ),
+                                li: ({ children }: any) => (
+                                    <li className="md-li">{children}</li>
+                                ),
+                                a: ({ href, children }: any) => (
+                                    <a href={href} className="md-a" target="_blank" rel="noopener noreferrer">{children}</a>
+                                ),
                             }}
                         >
                             {typeof content === 'string' ? content : JSON.stringify(content, null, 2)}
-                        </ReactMarkdown>
+                        </MessageResponse>
                     </div>
                 )}
 
@@ -214,79 +256,146 @@ export default function AgentMessage({ message, onFollowUpClick }: AgentMessageP
             color: var(--fg);
         }
 
-        .thinking-process {
+        /* Reasoning block styles are in reasoning.tsx global styles */
+
+        /* ── MessageResponse (streamdown) overrides ── */
+        .direct-answer {
+            font-size: 0.9375rem;
+            line-height: 1.65;
+            font-weight: 400;
+            color: var(--fg);
+        }
+
+        /* Headings */
+        .direct-answer :global(.md-h1),
+        .direct-answer h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: var(--fg);
+            margin: 1.25rem 0 0.5rem;
+            line-height: 1.2;
+            border-bottom: 1px solid var(--stroke);
+            padding-bottom: 0.5rem;
+        }
+        .direct-answer :global(.md-h2),
+        .direct-answer h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: -0.015em;
+            color: var(--fg);
+            margin: 1rem 0 0.375rem;
+            line-height: 1.3;
+        }
+        .direct-answer :global(.md-h3),
+        .direct-answer h3 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--fg);
+            margin: 0.875rem 0 0.25rem;
+        }
+        .direct-answer :global(.md-h4),
+        .direct-answer h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0.75rem 0 0.25rem;
+        }
+
+        /* Paragraphs */
+        .direct-answer :global(.md-p),
+        .direct-answer p {
+            margin-bottom: 0.75rem;
+            color: var(--fg);
+        }
+        .direct-answer p:last-child { margin-bottom: 0; }
+
+        /* Bold */
+        .direct-answer :global(.md-strong),
+        .direct-answer strong {
+            font-weight: 650;
+            color: var(--fg);
+        }
+
+        /* Lists */
+        .direct-answer ul, .direct-answer ol {
+            margin: 0.375rem 0 0.75rem;
+            padding-left: 1.25rem;
             display: flex;
             flex-direction: column;
             gap: 0.25rem;
-            padding: 0.75rem;
-            background: var(--bg-surface);
-            border-radius: 0.5rem;
-            border: 1px solid var(--stroke);
-            opacity: 0.7;
         }
-
-        .thinking-step {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8125rem;
-            color: var(--text-muted);
-        }
-
-        .thinking-step .dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--stroke);
-        }
-
-        .direct-answer {
-            font-weight: 400;
-        }
-
-        .direct-answer h1, .direct-answer h2, .direct-answer h3 {
-            margin: 1.5rem 0 1rem 0;
-            color: var(--fg);
-            line-height: 1.3;
-        }
-
-        .direct-answer h1 { font-size: 1.5rem; border-bottom: 1px solid var(--stroke); padding-bottom: 0.5rem; }
-        .direct-answer h2 { font-size: 1.25rem; }
-        .direct-answer h3 { font-size: 1.1rem; }
-
-        .direct-answer p {
-            margin-bottom: 1rem;
-        }
-
-        .direct-answer ul, .direct-answer ol {
-            margin-bottom: 1rem;
-            padding-left: 1.5rem;
-        }
-
+        .direct-answer :global(.md-li),
         .direct-answer li {
-            margin-bottom: 0.5rem;
-        }
-
-        .direct-answer strong {
-            font-weight: 700;
             color: var(--fg);
+            margin-bottom: 0;
         }
 
+        /* Blockquote */
         .direct-answer blockquote {
-            border-left: 4px solid var(--stroke);
-            padding-left: 1rem;
-            font-style: italic;
+            border-left: 2px solid var(--stroke);
+            padding: 0.5rem 0 0.5rem 1rem;
+            margin: 0.75rem 0;
             color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Links */
+        .direct-answer :global(.md-a),
+        .direct-answer a {
+            color: var(--accent);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* HR */
+        .direct-answer hr {
+            border: none;
+            border-top: 1px solid var(--stroke);
             margin: 1rem 0;
         }
 
+        /* Inline code */
         .direct-answer code:not(pre code) {
-            background: var(--bg-surface);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.3rem;
-            font-family: var(--font-mono);
-            font-size: 0.9em;
+            background: var(--bg-elevated);
+            color: var(--accent);
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8em;
             border: 1px solid var(--stroke);
+        }
+
+        /* Tables */
+        .direct-answer table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+            margin: 0.75rem 0;
+            border: 1px solid var(--stroke);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .direct-answer thead {
+            background: var(--bg-elevated);
+        }
+        .direct-answer th {
+            padding: 0.625rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--fg);
+            border-bottom: 1px solid var(--stroke);
+            white-space: nowrap;
+        }
+        .direct-answer tr {
+            border-bottom: 1px solid var(--stroke);
+        }
+        .direct-answer tr:last-child { border-bottom: none; }
+        .direct-answer td {
+            padding: 0.5rem 1rem;
+            color: var(--fg);
         }
 
         .message-section {

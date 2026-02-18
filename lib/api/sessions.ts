@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { WorkspaceSidebarService } from '../db/sidebar';
 import type { DataDNA } from '@/store/dataStore';
 
 export interface Session {
@@ -24,6 +25,16 @@ export async function createSession(filename: string, userId: string | null = nu
     .single();
 
   if (error) throw error;
+  
+  // Initialize workspace_sidebar for this session
+  try {
+    await WorkspaceSidebarService.initializeSidebar(data.id);
+    console.log('✅ [Sessions] Workspace sidebar initialized for session:', data.id);
+  } catch (sidebarError) {
+    console.error('⚠️ [Sessions] Failed to initialize workspace sidebar:', sidebarError);
+    // Don't fail the session creation if sidebar init fails
+  }
+  
   return data as Session;
 }
 
@@ -73,6 +84,16 @@ export async function updateSessionDataDNA(
     .single();
 
   if (error) throw error;
+  
+  // Also update workspace_sidebar with the Data DNA
+  try {
+    await WorkspaceSidebarService.updateDataDNA(sessionId, dataDNA);
+    console.log('✅ [Sessions] Data DNA saved to workspace sidebar');
+  } catch (sidebarError) {
+    console.error('⚠️ [Sessions] Failed to save Data DNA to workspace sidebar:', sidebarError);
+    // Don't fail the update if sidebar update fails
+  }
+  
   return data as Session;
 }
 
