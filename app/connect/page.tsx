@@ -210,8 +210,8 @@ export default function ConnectPage() {
                   <button
                     onClick={() => setActiveSource("upload")}
                     className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "upload"
-                        ? "text-black shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                      ? "text-black shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
                       }`}
                   >
                     {activeSource === "upload" && (
@@ -228,8 +228,8 @@ export default function ConnectPage() {
                   <button
                     onClick={() => setActiveSource("database")}
                     className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "database"
-                        ? "text-black shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                      ? "text-black shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
                       }`}
                   >
                     {activeSource === "database" && (
@@ -246,8 +246,8 @@ export default function ConnectPage() {
                   <button
                     onClick={() => setActiveSource("sample")}
                     className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "sample"
-                        ? "text-black shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                      ? "text-black shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
                       }`}
                   >
                     {activeSource === "sample" && (
@@ -386,7 +386,7 @@ export default function ConnectPage() {
                     className="flex flex-col items-center text-center w-full max-w-4xl"
                   >
                     <div className="w-full mb-8">
-                      <DataDnaPreview dataDNA={generatedDNA} />
+                      {generatedDNA && <DataDnaPreview dataDNA={generatedDNA} />}
                     </div>
 
                     <div className="flex gap-4">
