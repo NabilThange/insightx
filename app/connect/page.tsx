@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
-import { generateFintechData } from "@/components/data/DataGenerator";
+import { generateSampleFile } from "@/components/data/DataGenerator";
 import TextType from "@/components/interactive/TextType";
 import { showToast } from "@/lib/utils/toast";
 import { logger } from "@/lib/utils/logger";
@@ -24,11 +24,12 @@ import { logger } from "@/lib/utils/logger";
 import { useDataStore } from "@/store/dataStore";
 import type { DataDNA } from "@/store/dataStore";
 import {
-  uploadFile,
+  uploadFileWithProgress,
   exploreSession,
   pollSessionUntilReady,
   formatSessionToDataDNA,
 } from "@/lib/api/backend";
+import type { AnimationStatus } from "@/components/data/ScanningAnimation";
 
 type UploadState = "idle" | "scanning" | "preview" | "redirecting";
 type DataSource = "upload" | "database" | "sample";
@@ -42,6 +43,10 @@ export default function ConnectPage() {
   const [generatedDNA, setGeneratedDNA] = useState<DataDNA | null>(null);
   const [countdown, setCountdown] = useState(3);
   const [dragActive, setDragActive] = useState(false);
+
+  // Animation State
+  const [scanStatus, setScanStatus] = useState<AnimationStatus>("idle");
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const { setDataDNA } = useDataStore();
 
@@ -57,96 +62,25 @@ export default function ConnectPage() {
     }
   }, [uploadState, countdown, router]);
 
-  // Mock data generation (in real app, this would be backend processing)
-  const generateMockDNA = (filename: string): DataDNA => {
-    return {
-      filename,
-      rowCount: 250000,
-      columnCount: 12,
-      uploadDate: new Date(),
-      columns: [
-        {
-          name: "transaction_id",
-          type: "text",
-          nullPercentage: 0,
-          sampleValues: ["TXN_001", "TXN_002", "TXN_003"],
-        },
-        {
-          name: "amount",
-          type: "numeric",
-          nullPercentage: 0,
-          sampleValues: ["1245.50", "890.00", "2340.75"],
-        },
-        {
-          name: "timestamp",
-          type: "datetime",
-          nullPercentage: 0,
-          sampleValues: ["2024-01-15 20:30", "2024-01-15 20:45", "2024-01-15 21:00"],
-        },
-        {
-          name: "status",
-          type: "categorical",
-          nullPercentage: 5.8,
-          sampleValues: ["success", "failed", "pending"],
-        },
-        {
-          name: "network_type",
-          type: "categorical",
-          nullPercentage: 0,
-          sampleValues: ["4G", "5G", "WiFi"],
-        },
-        {
-          name: "merchant_id",
-          type: "text",
-          nullPercentage: 0,
-          sampleValues: ["MERCH_A", "MERCH_B", "MERCH_C"],
-        },
-        {
-          name: "user_id",
-          type: "text",
-          nullPercentage: 0,
-          sampleValues: ["USER_123", "USER_456", "USER_789"],
-        },
-        {
-          name: "payment_method",
-          type: "categorical",
-          nullPercentage: 0,
-          sampleValues: ["UPI", "Card", "Wallet"],
-        },
-      ],
-      baselines: {
-        avgTransaction: "₹1,245",
-        successRate: 94.2,
-        peakHours: "8-9 PM",
-        dateRange: "Jan 2024 - Feb 2024",
-      },
-      patterns: [
-        "P2P Transfers",
-        "Mobile Payments",
-        "Weekend Spikes",
-        "4G Timeout Pattern",
-      ],
-      insights: [
-        "High activity during 8-9 PM",
-        "4G has 23% higher timeout rate",
-        "Weekend transactions 15% higher",
-      ],
-    };
-  };
-
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
     setUploadedFile(file);
     setUploadState("scanning");
+    setScanStatus("uploading");
+    setUploadProgress(0);
 
     try {
       logger.api("Starting file upload", { filename: file.name, size: file.size });
 
-      // 1. Upload file to backend
-      const uploadResponse = await uploadFile(file);
+      // 1. Upload file to backend with progress
+      const uploadResponse = await uploadFileWithProgress(file, (progress) => {
+        setUploadProgress(progress);
+      });
+
       logger.api("File uploaded successfully", uploadResponse);
-      showToast.success("File Uploaded", "Analyzing data structure now...");
+      setScanStatus("processing");
+      // showToast.success("File Uploaded", "Analyzing data structure now...");
 
       // Store session_id in localStorage
       localStorage.setItem("current_session_id", uploadResponse.session_id);
@@ -163,7 +97,7 @@ export default function ConnectPage() {
       );
 
       logger.api("Session ready", session);
-      showToast.success("Data DNA Ready", "Full analysis profile generated.");
+      // showToast.success("Data DNA Ready", "Full analysis profile generated.");
 
       // Convert backend Data DNA to frontend format
       const dna = formatSessionToDataDNA(session);
@@ -172,10 +106,15 @@ export default function ConnectPage() {
 
       // Store in Zustand for backward compatibility
       setDataDNA(dna);
+
+      // Trigger completion sequence in animation
+      setScanStatus("complete");
+
     } catch (error) {
       logger.error("API", "Upload or analysis failed", error);
       showToast.error("Analysis Failed", error instanceof Error ? error.message : "Unknown error");
       setUploadState("idle");
+      setScanStatus("idle");
     }
   };
 
@@ -241,9 +180,8 @@ export default function ConnectPage() {
   };
 
   const handleLoadSample = () => {
-    const sampleDNA = generateFintechData();
-    setGeneratedDNA(sampleDNA);
-    setUploadState("scanning");
+    const file = generateSampleFile();
+    handleFileUpload(file);
   };
 
   return (
@@ -414,7 +352,7 @@ export default function ConnectPage() {
                     )}
 
                     {/* Scanning Content */}
-                    {uploadState === "scanning" && generatedDNA && (
+                    {uploadState === "scanning" && (
                       <motion.div
                         key="scanning-content"
                         initial={{ opacity: 0 }}
@@ -422,12 +360,15 @@ export default function ConnectPage() {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.4 }}
                         className="scanning-wrapper"
+                        style={{ width: '100%', height: '100%' }}
                       >
                         <ScanningAnimation
-                          filename={generatedDNA.filename}
-                          rowCount={generatedDNA.rowCount}
-                          columns={generatedDNA.columns}
-                          patterns={generatedDNA.patterns}
+                          status={scanStatus}
+                          uploadProgress={uploadProgress}
+                          filename={uploadedFile?.name || "data.csv"}
+                          rowCount={generatedDNA?.rowCount || 0}
+                          columns={generatedDNA?.columns || []}
+                          patterns={generatedDNA?.patterns || []}
                           onComplete={handleScanComplete}
                         />
                       </motion.div>

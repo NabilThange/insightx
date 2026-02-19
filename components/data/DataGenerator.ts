@@ -135,6 +135,57 @@ const SCENARIOS: ScenarioConfig[] = [
     }
 ];
 
+export const getScenarioColumns = () => [
+    {
+        name: "transaction_id",
+        type: "text" as const,
+        nullPercentage: 0,
+        sampleValues: [`TXN_${Math.floor(Math.random() * 1000)}`, `TXN_${Math.floor(Math.random() * 1000)}`, `TXN_${Math.floor(Math.random() * 1000)}`],
+    },
+    {
+        name: "amount",
+        type: "numeric" as const,
+        nullPercentage: 0,
+        sampleValues: ["1200.50", "450.00", "8900.25"],
+    },
+    {
+        name: "timestamp",
+        type: "datetime" as const,
+        nullPercentage: 0,
+        sampleValues: ["2024-10-15 10:30:00", "2024-10-15 10:31:05", "2024-10-15 10:32:12"],
+    },
+    {
+        name: "status",
+        type: "categorical" as const,
+        nullPercentage: Math.random() * 5,
+        sampleValues: ["success", "failed", "pending"],
+    },
+    {
+        name: "merchant_id",
+        type: "text" as const,
+        nullPercentage: 0,
+        sampleValues: ["M_AMZ", "M_FLPKRT", "M_ZOMATO"],
+    },
+    {
+        name: "customer_region",
+        type: "categorical" as const,
+        nullPercentage: Math.random() * 2,
+        sampleValues: ["North", "South", "West", "East"],
+    },
+    {
+        name: "device_type",
+        type: "categorical" as const,
+        nullPercentage: 0,
+        sampleValues: ["Android", "iOS", "Web"],
+    },
+    {
+        name: "payment_method",
+        type: "categorical" as const,
+        nullPercentage: 0,
+        sampleValues: ["UPI", "Credit Card", "Net Banking"],
+    }
+];
+
 export const generateFintechData = (): DataDNA => {
     // 1. Pick a random scenario
     const scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
@@ -148,58 +199,8 @@ export const generateFintechData = (): DataDNA => {
     const timestamp = new Date().getTime();
     const filename = `${scenario.filenamePrefix}_${timestamp}.csv`;
 
-    // 3. Generate columns (mix of standard and scenario-specific?)
-    // For now, return a standard set but with randomized types/nulls
-    const columns = [
-        {
-            name: "transaction_id",
-            type: "text" as const,
-            nullPercentage: 0,
-            sampleValues: [`TXN_${Math.floor(Math.random() * 1000)}`, `TXN_${Math.floor(Math.random() * 1000)}`, `TXN_${Math.floor(Math.random() * 1000)}`],
-        },
-        {
-            name: "amount",
-            type: "numeric" as const,
-            nullPercentage: 0,
-            sampleValues: ["1200.50", "450.00", "8900.25"],
-        },
-        {
-            name: "timestamp",
-            type: "datetime" as const,
-            nullPercentage: 0,
-            sampleValues: ["2024-10-15 10:30:00", "2024-10-15 10:31:05", "2024-10-15 10:32:12"],
-        },
-        {
-            name: "status",
-            type: "categorical" as const,
-            nullPercentage: Math.random() * 5,
-            sampleValues: ["success", "failed", "pending"],
-        },
-        {
-            name: "merchant_id",
-            type: "text" as const,
-            nullPercentage: 0,
-            sampleValues: ["M_AMZ", "M_FLPKRT", "M_ZOMATO"],
-        },
-        {
-            name: "customer_region",
-            type: "categorical" as const,
-            nullPercentage: Math.random() * 2,
-            sampleValues: ["North", "South", "West", "East"],
-        },
-        {
-            name: "device_type",
-            type: "categorical" as const,
-            nullPercentage: 0,
-            sampleValues: ["Android", "iOS", "Web"],
-        },
-        {
-            name: "payment_method",
-            type: "categorical" as const,
-            nullPercentage: 0,
-            sampleValues: ["UPI", "Credit Card", "Net Banking"],
-        }
-    ];
+    // 3. Generate columns
+    const columns = getScenarioColumns();
 
     return {
         filename,
@@ -211,4 +212,34 @@ export const generateFintechData = (): DataDNA => {
         patterns: scenario.patterns,
         insights: scenario.insights
     };
+};
+
+export const generateSampleFile = (): File => {
+    const scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+    const columns = getScenarioColumns();
+    const timestamp = new Date().getTime();
+    const filename = `${scenario.filenamePrefix}_${timestamp}.csv`;
+
+    // Header row
+    const headers = columns.map(c => c.name).join(",");
+
+    // Generate 50 rows of data
+    const rows = Array.from({ length: 50 }, () => {
+        return columns.map(col => {
+            if (col.type === "numeric") {
+                return (Math.random() * 10000).toFixed(2);
+            } else if (col.type === "datetime") {
+                return new Date().toISOString();
+            } else if (col.type === "categorical") {
+                const options = col.sampleValues;
+                return options[Math.floor(Math.random() * options.length)];
+            } else {
+                // text
+                return `VAL_${Math.floor(Math.random() * 10000)}`;
+            }
+        }).join(",");
+    });
+
+    const csvContent = [headers, ...rows].join("\n");
+    return new File([csvContent], filename, { type: "text/csv" });
 };

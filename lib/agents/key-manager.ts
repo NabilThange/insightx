@@ -47,10 +47,10 @@ export class KeyManager {
     // Try numbered keys first (BYTEZ_API_KEY_1, BYTEZ_API_KEY_2, ...)
     let i = 1;
     while (true) {
-      const key = 
-        process.env[`BYTEZ_API_KEY_${i}`] || 
+      const key =
+        process.env[`BYTEZ_API_KEY_${i}`] ||
         process.env[`NEXT_PUBLIC_BYTEZ_API_KEY_${i}`];
-      
+
       if (!key) break;
       keys.push(key);
       i++;
@@ -72,11 +72,12 @@ export class KeyManager {
     }
 
     if (keys.length === 0) {
-      throw new Error('No Bytez API keys found in environment variables');
+      console.warn('[KeyManager] No Bytez API keys found in environment variables. API calls will fail until keys are configured.');
+    } else {
+      console.log(`[KeyManager] Loaded ${keys.length} API key(s)`);
     }
 
     this.keys = keys;
-    console.log(`[KeyManager] Loaded ${keys.length} API key(s)`);
   }
 
   private initializeMetrics(): void {
@@ -95,13 +96,16 @@ export class KeyManager {
    * Get current active key
    */
   getCurrentKey(): string {
+    if (this.keys.length === 0) {
+      throw new Error('No Bytez API keys found in environment variables. Please configure BYTEZ_API_KEY or BYTEZ_API_KEY_1.');
+    }
     const key = this.keys[this.currentIndex];
     const metrics = this.metrics.get(this.maskKey(key));
-    
+
     if (metrics?.status === 'failed') {
       throw new Error('Current key is marked as failed. Call rotateKey() first.');
     }
-    
+
     return key;
   }
 
@@ -119,7 +123,7 @@ export class KeyManager {
     const key = this.keys[this.currentIndex];
     const maskedKey = this.maskKey(key);
     const metrics = this.metrics.get(maskedKey);
-    
+
     if (metrics) {
       metrics.status = 'failed';
       metrics.errorCount++;
@@ -128,7 +132,7 @@ export class KeyManager {
     }
 
     console.error(`[KeyManager] Key #${this.currentIndex + 1} marked as failed: ${reason}`);
-    
+
     // Show toast notification to user
     if (typeof window !== 'undefined') {
       showKeyFailureToast(this.currentIndex, this.keys.length, reason);
@@ -142,16 +146,16 @@ export class KeyManager {
   rotateKey(): boolean {
     const startIndex = this.currentIndex;
     const fromKey = this.maskKey(this.keys[this.currentIndex]);
-    
+
     // Try all keys
     for (let i = 0; i < this.keys.length; i++) {
       const nextIndex = (this.currentIndex + 1) % this.keys.length;
       const nextKey = this.keys[nextIndex];
       const metrics = this.metrics.get(this.maskKey(nextKey));
-      
+
       if (metrics?.status === 'healthy') {
         this.currentIndex = nextIndex;
-        
+
         // Record rotation event
         this.lastEvent = {
           timestamp: new Date(),
@@ -159,28 +163,28 @@ export class KeyManager {
           toKey: this.maskKey(nextKey),
           reason: 'Key rotation due to failure',
         };
-        
+
         console.log(`[KeyManager] Rotated to key #${this.currentIndex + 1}`);
-        
+
         // Show success toast
         if (typeof window !== 'undefined') {
           showKeyRotationSuccessToast(this.currentIndex);
         }
-        
+
         return true;
       }
-      
+
       this.currentIndex = nextIndex;
     }
 
     // All keys exhausted
     console.error('[KeyManager] All API keys exhausted');
-    
+
     // Show critical error toast
     if (typeof window !== 'undefined') {
       showAllKeysExhaustedToast(this.keys.length);
     }
-    
+
     return false;
   }
 
@@ -190,7 +194,7 @@ export class KeyManager {
   recordSuccess(): void {
     const key = this.keys[this.currentIndex];
     const metrics = this.metrics.get(this.maskKey(key));
-    
+
     if (metrics) {
       metrics.usageCount++;
       metrics.lastUsed = new Date();

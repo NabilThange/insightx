@@ -217,6 +217,49 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
 }
 
 /**
+ * Upload CSV file with progress tracking
+ */
+export function uploadFileWithProgress(
+  file: File,
+  onProgress: (progress: number) => void
+): Promise<UploadResponse> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const uploadUrl = `${API_BASE_URL}/upload`;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", uploadUrl);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = (event.loaded / event.total) * 100;
+        onProgress(Math.round(percentComplete));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response);
+        } catch (e) {
+          reject(new Error("Failed to parse response"));
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network error"));
+    };
+
+    xhr.send(formData);
+  });
+}
+
+/**
  * Trigger data exploration for a session
  */
 export async function exploreSession(sessionId: string): Promise<any> {

@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import { Loader2, CheckCircle2, Sparkles, ServerCog, HardDriveUpload } from "lucide-react";
 import ColumnCard from "./ColumnCard";
 
-type ScanStage = "reading" | "profiling" | "detecting" | "ready";
+export type AnimationStatus = "idle" | "uploading" | "processing" | "complete";
 
 interface ScanningAnimationProps {
+  status: AnimationStatus;
+  uploadProgress: number;
   filename: string;
   rowCount: number;
   columns: {
@@ -20,132 +22,157 @@ interface ScanningAnimationProps {
   onComplete: () => void;
 }
 
+type VisualStage = "idle" | "profiling" | "detecting" | "ready";
+
 export default function ScanningAnimation({
+  status,
+  uploadProgress,
   filename,
   rowCount,
   columns,
   patterns,
   onComplete,
 }: ScanningAnimationProps) {
-  const [stage, setStage] = useState<ScanStage>("reading");
-  const [progress, setProgress] = useState(0);
+  const [visualStage, setVisualStage] = useState<VisualStage>("idle");
   const [visibleColumns, setVisibleColumns] = useState(0);
   const [visiblePatterns, setVisiblePatterns] = useState(0);
   const columnsContainerRef = useRef<HTMLDivElement>(null);
 
+  // Sync internal visual stage with external status
+  useEffect(() => {
+    if (status === "complete" && visualStage === "idle") {
+      setVisualStage("profiling");
+    }
+  }, [status, visualStage]);
+
   // Auto-scroll effect for profiling stage
   useEffect(() => {
-    if (stage === "profiling" && columnsContainerRef.current) {
+    if (visualStage === "profiling" && columnsContainerRef.current) {
       const container = columnsContainerRef.current;
       container.scrollTop = container.scrollHeight;
     }
-  }, [visibleColumns, stage]);
+  }, [visibleColumns, visualStage]);
 
+  // Visual Animation Sequence (only runs when status is complete)
   useEffect(() => {
-    // Stage 1: Reading file (0-2s)
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 100);
-
-    const stage1Timer = setTimeout(() => {
-      setStage("profiling");
-      clearInterval(progressInterval);
-    }, 2000);
-
-    return () => {
-      clearTimeout(stage1Timer);
-      clearInterval(progressInterval);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (stage === "profiling") {
-      // Stage 2: Profiling rows - show columns one by one (2-5s)
+    if (visualStage === "profiling") {
+      // Stage 1: Profiling rows - show columns one by one
       const columnInterval = setInterval(() => {
         setVisibleColumns((prev) => {
           if (prev >= columns.length) {
             clearInterval(columnInterval);
-            setTimeout(() => setStage("detecting"), 500);
+            setTimeout(() => setVisualStage("detecting"), 500);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 200); // Faster reveal
+
+      return () => clearInterval(columnInterval);
+    }
+  }, [visualStage, columns.length]);
+
+  useEffect(() => {
+    if (visualStage === "detecting") {
+      // Stage 2: Detecting patterns - show tags one by one
+      const patternInterval = setInterval(() => {
+        setVisiblePatterns((prev) => {
+          if (prev >= patterns.length) {
+            clearInterval(patternInterval);
+            setTimeout(() => setVisualStage("ready"), 500);
             return prev;
           }
           return prev + 1;
         });
       }, 300);
 
-      return () => clearInterval(columnInterval);
-    }
-  }, [stage, columns.length]);
-
-  useEffect(() => {
-    if (stage === "detecting") {
-      // Stage 3: Detecting patterns - show tags one by one (5-7s)
-      const patternInterval = setInterval(() => {
-        setVisiblePatterns((prev) => {
-          if (prev >= patterns.length) {
-            clearInterval(patternInterval);
-            setTimeout(() => setStage("ready"), 500);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 400);
-
       return () => clearInterval(patternInterval);
     }
-  }, [stage, patterns.length]);
+  }, [visualStage, patterns.length]);
 
   useEffect(() => {
-    if (stage === "ready") {
-      // Stage 4: Ready - wait 1.5s then complete
+    if (visualStage === "ready") {
+      // Stage 3: Ready - wait 1.5s then complete
       const completeTimer = setTimeout(() => {
         onComplete();
-      }, 3000);
+      }, 2000);
 
       return () => clearTimeout(completeTimer);
     }
-  }, [stage, onComplete]);
+  }, [visualStage, onComplete]);
 
   return (
     <div className="scanning-wrapper" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <AnimatePresence mode="wait">
-        {/* Stage 1: Reading File */}
-        {stage === "reading" && (
+        {/* Stage 1: Uploading */}
+        {status === "uploading" && (
           <motion.div
-            key="reading"
+            key="uploading"
             className="stage-content"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            <Loader2 size={64} className="spinner" />
-            <h3>Reading file...</h3>
+            <HardDriveUpload size={64} className="pulse-icon" />
+            <h3>Uploading Data...</h3>
             <p className="filename">{filename}</p>
             <div className="progress-container">
               <div className="progress-bar">
                 <motion.div
                   className="progress-fill"
                   initial={{ width: "0%" }}
-                  animate={{ width: `${progress}%` }}
+                  animate={{ width: `${uploadProgress}%` }}
                   transition={{ duration: 0.1 }}
                 />
               </div>
               <div className="progress-stats">
-                <span>{progress}%</span>
-                <span>{(250000 * (progress / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })} rows processed</span>
+                <span>{uploadProgress}%</span>
+                <span>Compressing & Encrypting...</span>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* Stage 2: Profiling Rows */}
-        {stage === "profiling" && (
+        {/* Stage 2: Processing (Backend Work) */}
+        {status === "processing" && (
+          <motion.div
+            key="processing"
+            className="stage-content"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ServerCog size={64} className="spinner" />
+            <h3>Analyzing Structure...</h3>
+            <p className="stage-subtitle">AI Agents are scanning for schema & patterns</p>
+
+            <div className="processing-steps">
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+                className="step-item"
+              >
+                <CheckCircle2 size={16} className="text-green-500" />
+                <span>Upload Complete</span>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.5 }}
+                className="step-item active"
+              >
+                <Loader2 size={14} className="animate-spin" />
+                <span>Generating Data DNA...</span>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Stage 3: Visualizing Results (Profiling) */}
+        {status === "complete" && visualStage === "profiling" && (
           <motion.div
             key="profiling"
             className="stage-content"
@@ -155,7 +182,7 @@ export default function ScanningAnimation({
             transition={{ duration: 0.3 }}
           >
             <Loader2 size={48} className="spinner" />
-            <h3>Profiling {rowCount.toLocaleString()} rows...</h3>
+            <h3>Profiling {rowCount?.toLocaleString() || "..."} rows...</h3>
             <p className="stage-subtitle">Analyzing column types and distributions</p>
 
             <div className="columns-container" ref={columnsContainerRef}>
@@ -168,8 +195,8 @@ export default function ScanningAnimation({
           </motion.div>
         )}
 
-        {/* Stage 3: Detecting Patterns */}
-        {stage === "detecting" && (
+        {/* Stage 4: Visualizing Results (Detecting) */}
+        {status === "complete" && visualStage === "detecting" && (
           <motion.div
             key="detecting"
             className="stage-content"
@@ -198,8 +225,8 @@ export default function ScanningAnimation({
           </motion.div>
         )}
 
-        {/* Stage 4: Ready */}
-        {stage === "ready" && (
+        {/* Stage 5: Ready */}
+        {status === "complete" && visualStage === "ready" && (
           <motion.div
             key="ready"
             className="stage-content"
@@ -230,10 +257,6 @@ export default function ScanningAnimation({
                 <CheckCircle2 size={16} className="trust-icon" />
                 <span>{patterns.length} patterns identified</span>
               </div>
-              <div className="trust-item">
-                <CheckCircle2 size={16} className="trust-icon" />
-                <span>Statistical baselines calculated</span>
-              </div>
             </div>
           </motion.div>
         )}
@@ -261,6 +284,11 @@ export default function ScanningAnimation({
           animation: pulse 1.5s ease-in-out infinite;
         }
 
+        :global(.pulse-icon) {
+          color: var(--fg);
+          animation: pulse 2s ease-in-out infinite;
+        }
+
         :global(.success-icon) {
           color: var(--accent-green);
         }
@@ -284,10 +312,26 @@ export default function ScanningAnimation({
           margin-top: -0.75rem;
         }
 
-        .success-message {
-          color: var(--accent-green);
-          font-weight: 500;
-          font-size: 1rem;
+        .processing-steps {
+           display: flex;
+           flex-direction: column;
+           gap: 0.5rem;
+           margin-top: 1rem;
+           align-items: flex-start;
+           min-width: 200px;
+        }
+
+        .step-item {
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
+           font-size: 0.9rem;
+           color: var(--text-muted);
+        }
+        
+        .step-item.active {
+           color: var(--fg);
+           font-weight: 500;
         }
 
         .progress-container {
@@ -327,7 +371,6 @@ export default function ScanningAnimation({
           margin-top: 1rem;
           padding: 0.25rem;
           scroll-behavior: smooth;
-          /* Custom scrollbar for webkit browsers */
           scrollbar-width: thin;
           scrollbar-color: var(--stroke) transparent;
         }
@@ -350,7 +393,6 @@ export default function ScanningAnimation({
           grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
           gap: 1rem;
           width: 100%;
-          /* margin-top removed as handled by container */
         }
 
         .patterns-container {
