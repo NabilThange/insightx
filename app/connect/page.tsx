@@ -7,12 +7,9 @@ import {
   Upload,
   Database,
   FileSpreadsheet,
-  UploadCloud,
-  FileText,
-  CheckCircle2,
   ArrowRight,
-  ShieldCheck,
-  Zap
+  Command,
+  LayoutGrid,
 } from "lucide-react";
 import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
@@ -80,7 +77,6 @@ export default function ConnectPage() {
 
       logger.api("File uploaded successfully", uploadResponse);
       setScanStatus("processing");
-      // showToast.success("File Uploaded", "Analyzing data structure now...");
 
       // Store session_id in localStorage
       localStorage.setItem("current_session_id", uploadResponse.session_id);
@@ -97,7 +93,6 @@ export default function ConnectPage() {
       );
 
       logger.api("Session ready", session);
-      // showToast.success("Data DNA Ready", "Full analysis profile generated.");
 
       // Convert backend Data DNA to frontend format
       const dna = formatSessionToDataDNA(session);
@@ -125,6 +120,8 @@ export default function ConnectPage() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
     const file = e.dataTransfer.files[0];
     if (file && (file.name.endsWith(".csv") || file.name.endsWith(".xlsx"))) {
       handleFileUpload(file);
@@ -133,6 +130,16 @@ export default function ConnectPage() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
   };
 
   const handleScanComplete = () => {
@@ -158,678 +165,259 @@ export default function ConnectPage() {
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
-    }
-  };
-
-  const startAnalysis = () => {
-    handleContinue();
-  };
-
   const handleLoadSample = () => {
     const file = generateSampleFile();
     handleFileUpload(file);
   };
 
   return (
-    <div className="connect-page">
+    <div className="min-h-screen bg-[#f1efe7] flex items-center justify-center p-4 md:p-6 font-sans">
 
-      {/* GlobalHeader is now persistent in RootLayout */}
+      {/* ELEVATED CONTAINER */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-4xl bg-white rounded-[2rem] shadow-xl shadow-black/5 overflow-hidden min-h-[600px] flex flex-col relative z-10"
+      >
 
-      <div className="connect-container">
+        {/* MAIN CONTENT AREA */}
+        <main className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 relative overflow-hidden">
 
-        {/* HERO SECTION - Title + Subtitle + Actions */}
-        <motion.section
-          className="hero-section"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-        >
-          <div className="hero-content">
-            <h1 className="hero-title">
-              <TextType
-                text="The Bridge"
-                typingSpeed={75}
-                loop={false}
-                showCursor={false}
-                as="span"
-              />
-            </h1>
-            <p className="hero-subtitle">Connect your data to begin exploratory analysis</p>
-          </div>
-
-          <div className="action-tabs">
-            <div className="source-tabs">
-              <button
-                className={`tab ${activeSource === "upload" ? "active" : ""}`}
-                onClick={() => setActiveSource("upload")}
+          {/* HERO SECTION */}
+          <AnimatePresence mode="wait">
+            {uploadState === "idle" && (
+              <motion.div
+                key="hero"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="w-full max-w-2xl flex flex-col items-center text-center z-10"
               >
-                <Upload size={18} />
-                Upload CSV
-              </button>
-              <button
-                className={`tab ${activeSource === "database" ? "active" : ""}`}
-                onClick={() => setActiveSource("database")}
-              >
-                <Database size={18} />
-                Connect Database
-              </button>
-              <button
-                className={`tab ${activeSource === "sample" ? "active" : ""}`}
-                onClick={() => setActiveSource("sample")}
-              >
-                <FileSpreadsheet size={18} />
-                Sample Dataset
-              </button>
-            </div>
-          </div>
+                <motion.h1
+                  className="text-5xl md:text-6xl font-serif text-[#1f1f1f] mb-3 tracking-tight"
+                  style={{ fontFamily: '"PP Neue Montreal", sans-serif', fontWeight: 500 }}
+                >
+                  The Bridge
+                </motion.h1>
+                <p className="text-lg text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
+                  Connect your data sources to begin exploratory analysis. Secure, fast, and intelligent.
+                </p>
 
-          <div className="section-divider" />
-        </motion.section>
+                {/* SEGMENTED CONTROL */}
+                <div className="bg-gray-100 p-1 rounded-full flex items-center gap-1 mb-10 shadow-inner">
+                  <button
+                    onClick={() => setActiveSource("upload")}
+                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "upload"
+                        ? "text-black shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    {activeSource === "upload" && (
+                      <motion.div
+                        layoutId="active-pill"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm z-0"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Upload size={15} /> Upload CSV
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setActiveSource("database")}
+                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "database"
+                        ? "text-black shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    {activeSource === "database" && (
+                      <motion.div
+                        layoutId="active-pill"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm z-0"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Database size={15} /> Database
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setActiveSource("sample")}
+                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "sample"
+                        ? "text-black shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    {activeSource === "sample" && (
+                      <motion.div
+                        layoutId="active-pill"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm z-0"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <FileSpreadsheet size={15} /> Sample Data
+                    </span>
+                  </button>
+                </div>
 
-        {/* ZONE 2: INTERACTION AREA */}
-        <section className="interaction-zone">
-          <motion.div
-            className="content-wrapper"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-
-            {/* STAGE CONTAINER */}
-            <AnimatePresence mode="wait">
-              {(uploadState === "idle" || uploadState === "scanning") && (
+                {/* ACTIVE SOURCE CONTENT */}
                 <motion.div
-                  key="stage-container"
                   layout
-                  className={
-                    uploadState === "scanning"
-                      ? "upload-zone scanning-mode"
-                      : activeSource === "upload"
-                        ? "upload-zone"
-                        : activeSource === "database"
-                          ? "database-form"
-                          : "upload-zone sample-option"
-                  }
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="w-full max-w-md"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <AnimatePresence mode="wait">
-                    {/* Upload Content */}
-                    {uploadState === "idle" && activeSource === "upload" && (
-                      <motion.div
-                        key="upload-content"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="stage-inner-content"
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <div className="upload-header">
-                          <Upload size={64} className="upload-icon-large" strokeWidth={1.2} />
-                          <div className="upload-prompts">
-                            <p className="primary-text">Drop your CSV file here</p>
-                            <p className="secondary-text">or click to browse</p>
-                          </div>
-                        </div>
+                  {activeSource === "upload" && (
+                    <div
+                      className={`
+                             group relative border-2 border-dashed rounded-[1.5rem] p-8 md:p-10 
+                             flex flex-col items-center justify-center text-center
+                             transition-all duration-200 cursor-pointer overflow-hidden
+                             bg-white
+                             ${dragActive
+                          ? "border-blue-500 bg-blue-50/10 scale-[1.01]"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/30 hover:shadow-sm"
+                        }
+                           `}
+                      onDragEnter={handleDragOver}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 group-hover:bg-white group-hover:shadow-md transition-all duration-300">
+                        <Upload size={28} className="text-gray-400 group-hover:text-black transition-colors" strokeWidth={1.5} />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">
+                        Drop your CSV file here
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-6">
+                        or click to browse from your computer
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-gray-300 uppercase tracking-wider font-semibold">
+                        <span>CSV</span>
+                        <span>•</span>
+                        <span>XLSX</span>
+                        <span>•</span>
+                        <span>JSON</span>
+                      </div>
 
-                        <div className="upload-meta">
-                          <span>Supported: csv, json, xlsx</span>
-                          <span className="dot">•</span>
-                          <span>Max 50MB</span>
-                        </div>
-
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".csv,.xlsx"
-                          onChange={handleFileInputChange}
-                          style={{ display: "none" }}
-                        />
-                      </motion.div>
-                    )}
-
-                    {/* Database Content */}
-                    {uploadState === "idle" && activeSource === "database" && (
-                      <motion.div
-                        key="database-content"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="stage-inner-content db-content"
-                      >
-                        <Database size={40} strokeWidth={1.5} className="db-icon" />
-                        <h3>Connect Database</h3>
-                        <div className="form-grid">
-                          <input type="text" placeholder="Host" />
-                          <input type="text" placeholder="Port" />
-                          <input type="text" placeholder="Database" />
-                          <input type="text" placeholder="User" />
-                          <input type="password" placeholder="Password" />
-                        </div>
-                        <button className="connect-btn secondary">Test Connection</button>
-                      </motion.div>
-                    )}
-
-                    {/* Sample Content */}
-                    {uploadState === "idle" && activeSource === "sample" && (
-                      <motion.div
-                        key="sample-content"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="stage-inner-content sample-content"
-                      >
-                        <FileSpreadsheet size={40} strokeWidth={1.5} className="sample-icon" />
-                        <div className="sample-text">
-                          <h3>Load Sample Dataset</h3>
-                          <p>Generate a randomized Fintech dataset (Fraud, Growth, Churn scenarios).</p>
-                        </div>
-                        <button className="connect-btn" onClick={handleLoadSample}>
-                          Generate & Load Sample
-                        </button>
-                      </motion.div>
-                    )}
-
-                    {/* Scanning Content */}
-                    {uploadState === "scanning" && (
-                      <motion.div
-                        key="scanning-content"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="scanning-wrapper"
-                        style={{ width: '100%', height: '100%' }}
-                      >
-                        <ScanningAnimation
-                          status={scanStatus}
-                          uploadProgress={uploadProgress}
-                          filename={uploadedFile?.name || "data.csv"}
-                          rowCount={generatedDNA?.rowCount || 0}
-                          columns={generatedDNA?.columns || []}
-                          patterns={generatedDNA?.patterns || []}
-                          onComplete={handleScanComplete}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-
-              {uploadState === "preview" && generatedDNA && (
-                <motion.div
-                  key="preview"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="preview-container"
-                >
-                  <div className="snapshot-panel">
-                    <DataDnaPreview dataDNA={generatedDNA} />
-
-                    <div className="snapshot-status">
-                      <CheckCircle2 size={18} className="success-icon" />
-                      <span>Data DNA generated successfully.</span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv,.xlsx"
+                        onChange={handleFileInputChange}
+                        style={{ display: "none" }}
+                      />
                     </div>
+                  )}
 
-                    <div className="snapshot-actions">
-                      <button className="continue-btn" onClick={startAnalysis}>
-                        Continue to Workspace <ArrowRight size={18} />
+                  {activeSource === "database" && (
+                    <div className="bg-white border border-gray-200 rounded-[1.5rem] p-8 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
+                          <Database size={20} className="text-gray-600" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-medium text-gray-900">PostgreSQL Connection</h3>
+                          <p className="text-xs text-gray-500">Read-only access required</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <input className="col-span-2 p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Host (e.g. aws.amazon.com)" />
+                        <input className="p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Port" />
+                        <input className="p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Database" />
+                        <input className="col-span-2 p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Username" />
+                        <input className="col-span-2 p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" type="password" placeholder="Password" />
+                      </div>
+                      <button className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black transition-colors">
+                        Test Connection
                       </button>
                     </div>
-                  </div>
+                  )}
+
+                  {activeSource === "sample" && (
+                    <div className="bg-white border border-gray-200 rounded-[1.5rem] p-8 shadow-sm text-center">
+                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                        <FileSpreadsheet size={32} strokeWidth={1.5} />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Fintech Growth Dataset</h3>
+                      <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                        A generated dataset containing 250k rows of transaction data, including fraud patterns and user churn signals.
+                      </p>
+                      <button
+                        onClick={handleLoadSample}
+                        className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black transition-colors flex items-center justify-center gap-2 group"
+                      >
+                        Generate & Load <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
-              )}
+              </motion.div>
+            )}
 
-              {uploadState === "redirecting" && (
-                <motion.div
-                  key="redirecting"
-                  className="redirecting-container"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <h3>Launching workspace in {countdown}...</h3>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {(uploadState === "scanning" || uploadState === "preview") && (
+              <motion.div
+                key="scanning"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full h-full flex flex-col items-center justify-center"
+              >
+                {uploadState === "scanning" ? (
+                  <ScanningAnimation
+                    status={scanStatus}
+                    uploadProgress={uploadProgress}
+                    filename={uploadedFile?.name || "data.csv"}
+                    rowCount={generatedDNA?.rowCount || 0}
+                    columns={generatedDNA?.columns || []}
+                    patterns={generatedDNA?.patterns || []}
+                    onComplete={handleScanComplete}
+                  />
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center text-center w-full max-w-4xl"
+                  >
+                    <div className="w-full mb-8">
+                      <DataDnaPreview dataDNA={generatedDNA} />
+                    </div>
 
-            {/* PROCESS STRIP - anchored below interaction zone */}
-            <div className="process-strip">
-              <div className="step active">
-                <UploadCloud size={14} />
-                <span>Upload</span>
-              </div>
-              <div className="step-line" />
-              <div className="step">
-                <ShieldCheck size={14} />
-                <span>Profiling</span>
-              </div>
-              <div className="step-line" />
-              <div className="step">
-                <Zap size={14} />
-                <span>Insights</span>
-              </div>
-            </div>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setUploadState("idle")}
+                        className="px-6 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                      >
+                        Upload Another
+                      </button>
+                      <button
+                        onClick={handleContinue}
+                        className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black transition-colors flex items-center gap-2 shadow-lg shadow-black/20"
+                      >
+                        Enter Workspace <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          </motion.div>
-        </section>
-      </div>
+          {/* BACKGROUND DECORATION */}
+          <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-[0.03] z-0">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-black rounded-full blur-3xl translate-y-[-50%]"></div>
+            <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-black rounded-full blur-3xl translate-y-[50%]"></div>
+          </div>
 
-      <style jsx>{`
-        .connect-page {
-          width: 100vw;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          background-color: var(--bg);
-          padding: 0;
-        }
-
-        .connect-container {
-          width: 100%;
-          max-width: 900px;
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-xl);
-          margin-top: var(--space-2xl);
-          padding: 0 var(--space-lg);
-        }
-
-        /* HERO SECTION */
-        .hero-section {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-lg);
-            width: 100%;
-            align-items: center;
-        }
-
-        .hero-content {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-sm);
-            align-items: center;
-            text-align: center;
-        }
-
-        .hero-title {
-            font-size: 3rem;
-            font-weight: 500;
-            color: var(--fg);
-            letter-spacing: -0.04em;
-            margin: 0;
-            line-height: 1;
-        }
-
-        .hero-subtitle {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-            margin: 0;
-            font-weight: 400;
-            letter-spacing: -0.01em;
-            line-height: 1.4;
-        }
-
-        .action-tabs {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            margin-top: var(--space-md);
-        }
-
-        .source-tabs {
-            display: flex;
-            gap: var(--space-sm);
-            background: var(--loader-bg);
-            padding: 0.25rem;
-            border-radius: var(--radius-md);
-        }
-
-        .tab {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.625rem;
-            padding: 0.625rem 1.25rem;
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: calc(var(--radius-md) - 0.25rem);
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all var(--transition-medium) cubic-bezier(0.4, 0, 0.2, 1);
-            white-space: nowrap;
-        }
-
-        .tab:hover {
-            color: var(--fg);
-        }
-
-        .tab.active {
-            background-color: var(--fg);
-            color: var(--bg);
-            border-color: var(--fg);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .section-divider {
-            width: 100%;
-            height: 1px;
-            background-color: var(--stroke);
-            opacity: 0.5;
-            margin-top: var(--space-lg);
-        }
-
-        /* ZONE 2: INTERACTION */
-        .interaction-zone {
-            width: 100%;
-        }
-
-        .upload-zone {
-            background-color: transparent;
-            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%231f1f1f22' stroke-width='1.5' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            transition: all var(--transition-medium) cubic-bezier(0.2, 0, 0.2, 1);
-            cursor: pointer;
-            width: 100%;
-            position: relative;
-            min-height: 400px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .upload-zone:hover {
-            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%231f1f1f44' stroke-width='1.5' stroke-dasharray='8%2c 4' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
-            background-color: rgba(31, 31, 31, 0.02);
-        }
-
-        .upload-zone.scanning-mode {
-             background-image: none;
-             border: 1px solid var(--stroke);
-             cursor: default;
-        }
-        
-        .upload-zone.scanning-mode:hover {
-             background-color: transparent;
-        }
-
-        .stage-inner-content {
-            padding: var(--space-xl) var(--space-lg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-lg);
-            width: 100%;
-            min-height: 400px;
-        }
-
-        .upload-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--space-lg);
-        }
-
-        .upload-icon-large {
-            color: var(--fg);
-            opacity: 0.8;
-        }
-
-        .upload-prompts {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-xs);
-        }
-
-        .primary-text {
-            font-size: 1.5rem;
-            font-weight: 500;
-            color: var(--fg);
-            margin: 0;
-            letter-spacing: -0.02em;
-        }
-
-        .secondary-text {
-            font-size: 1.125rem;
-            color: var(--text-muted);
-            margin: 0;
-        }
-
-        .upload-meta {
-            margin-top: auto;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            padding-top: 1rem;
-            border-top: 1px dashed var(--stroke);
-            width: 100%;
-            justify-content: center;
-        }
-
-        .dot { color: var(--stroke); }
-
-        /* Database Form */
-        .database-form {
-             background-color: var(--bg-surface);
-             border: 1px solid var(--stroke);
-             border-radius: var(--radius-md);
-             padding: var(--space-xl);
-             display: flex;
-             flex-direction: column;
-             align-items: center;
-             gap: var(--space-lg);
-             transition: all var(--transition-medium) ease;
-             width: 100%;
-        }
-        
-        .database-form:hover {
-             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-        }
-        
-        .db-content h3 { margin: 0; font-size: 1rem; font-weight: 500; }
-        .db-icon { color: var(--fg); opacity: 0.8; }
-
-        .form-grid {
-             display: grid;
-             grid-template-columns: 1fr 1fr;
-             gap: 0.75rem;
-             width: 100%;
-             max-width: 400px;
-        }
-        .form-grid input:nth-last-child(1) { grid-column: span 2; }
-
-        .form-grid input {
-             padding: 0.625rem;
-             border: 1px solid var(--stroke);
-             border-radius: 0.375rem;
-             background: transparent;
-             font-size: 0.875rem;
-             font-family: inherit;
-             color: var(--fg);
-             transition: all 0.2s ease;
-        }
-        .form-grid input:focus { 
-             outline: none; 
-             border-color: var(--fg);
-             box-shadow: 0 0 0 3px rgba(31, 31, 31, 0.05);
-        }
-        .form-grid input:hover {
-             border-color: rgba(31, 31, 31, 0.3);
-        }
-
-        /* Sample Content */
-        .sample-content {
-             text-align: center;
-        }
-        .sample-icon { color: var(--fg); opacity: 0.8; }
-        .sample-text h3 { margin: 0 0 var(--space-xs) 0; font-size: 1.25rem; font-weight: 500; }
-        .sample-text p { margin: 0; font-size: 1rem; color: var(--text-muted); max-width: 400px; line-height: 1.5; }
-
-        /* Connect Button */
-        .connect-btn {
-             padding: 0.75rem 1.5rem;
-             background-color: var(--fg);
-             color: var(--bg);
-             border: none;
-             border-radius: 0.5rem;
-             font-family: inherit;
-             font-size: 0.9375rem;
-             font-weight: 500;
-             cursor: pointer;
-             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-             box-shadow: 0 2px 8px rgba(31, 31, 31, 0.15);
-        }
-        
-        .connect-btn:hover {
-             transform: translateY(-2px);
-             box-shadow: 0 4px 16px rgba(31, 31, 31, 0.25);
-        }
-        
-        .connect-btn:active {
-             transform: translateY(0);
-        }
-
-        /* Process Strip */
-        .process-strip {
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             gap: var(--space-md);
-             margin-top: var(--space-xl);
-             opacity: 0.4;
-             transition: opacity var(--transition-fast) ease;
-        }
-        
-        .process-strip:hover {
-             opacity: 0.8;
-        }
-
-        .step {
-             display: flex;
-             align-items: center;
-             gap: 0.5rem;
-             font-size: 0.75rem;
-             font-weight: 600;
-             color: var(--fg);
-             text-transform: uppercase;
-             letter-spacing: 0.05em;
-        }
-
-        .step-line {
-             width: 32px;
-             height: 1px;
-             background-color: var(--stroke);
-        }
-        
-        /* Snapshot/Preview Styles */
-        .snapshot-panel {
-            margin-top: var(--space-md);
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-lg);
-        }
-        
-        .snapshot-status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-sm);
-            color: var(--success);
-            font-size: 1rem;
-            font-weight: 500;
-        }
-        
-        .success-icon {
-            animation: successPulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes successPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        
-        .continue-btn {
-            background-color: var(--fg);
-            color: var(--bg);
-            border: none;
-            padding: 1rem 3rem;
-            border-radius: var(--radius-full);
-            font-size: 1.125rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-            transition: all var(--transition-medium) cubic-bezier(0.4, 0, 0.2, 1);
-            margin: 0 auto;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        }
-        .continue-btn:hover { 
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-        }
-        .continue-btn:active {
-            transform: translateY(-1px);
-        }
-        
-        .scanning-wrapper {
-             width: 100%;
-             display: flex;
-             justify-content: center;
-        }
-        
-        .redirecting-container {
-             text-align: center;
-             padding: 3rem 2rem;
-        }
-        
-        .redirecting-container h3 {
-             font-size: 1.5rem;
-             font-weight: 500;
-             color: var(--fg);
-             margin: 0;
-        }
-
-        @media (max-width: 1000px) {
-           .hero-title { font-size: 2.25rem; }
-           .hero-subtitle { font-size: 1.125rem; }
-           .connect-container { gap: var(--space-lg); margin-top: var(--space-xl); }
-           .primary-text { font-size: 1.25rem; }
-           .secondary-text { font-size: 1rem; }
-        }
-      `}</style>
+        </main>
+      </motion.div>
     </div>
+
   );
 }
