@@ -34,7 +34,10 @@ export default function AgentMessage({ message, onFollowUpClick }: AgentMessageP
       <div className="message-body">
         {/* Thinking Process */}
         {message.thinking && message.thinking.length > 0 && (
-          <ThinkingProcess steps={message.thinking} />
+          <ThinkingProcess 
+            steps={message.thinking} 
+            isComplete={!!message.content} // Complete when there's content
+          />
         )}
 
         {/* Structured Composer Response */}

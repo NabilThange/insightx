@@ -108,7 +108,7 @@ export class AgentRunner {
 
     return this.executeWithRetry(async (client) => {
       let runCycle = 0;
-      const MAX_CYCLES = 5;
+      const MAX_CYCLES = 8;
 
       while (runCycle < MAX_CYCLES) {
         runCycle++;
@@ -322,7 +322,9 @@ export class AssemblyLineOrchestrator {
       }
 
       // If Data DNA Agent can answer, return early
-      if (dataDnaResponse.can_answer && dataDnaResponse.answer) {
+      // Check both 'answer' and 'text' fields since response format may vary
+      const answer = dataDnaResponse.answer ?? dataDnaResponse.text;
+      if (dataDnaResponse.can_answer && answer) {
         console.log('✨ [Data DNA Agent] Question answered from metadata - short-circuiting pipeline');
         
         yield { 
@@ -335,15 +337,29 @@ export class AssemblyLineOrchestrator {
           } 
         };
 
-        // Save the answer
+        // Build the full response object with all fields from Data DNA Agent
+        const fullResponse = {
+          text: answer,
+          chart_spec: dataDnaResponse.chart_spec,
+          metrics: dataDnaResponse.metrics,
+          confidence: dataDnaResponse.confidence,
+          follow_ups: dataDnaResponse.follow_ups,
+          reasoning: dataDnaResponse.reasoning,
+          data_sources: dataDnaResponse.data_sources
+        };
+
+        // Save the full response to DB (as JSON string to preserve structure)
         if (this.chatId) {
           try {
             await ChatService.addMessage({
               chat_id: this.chatId,
               role: 'assistant',
-              content: dataDnaResponse.answer
+              content: JSON.stringify(fullResponse)
             });
-            console.log('✅ [Data DNA Agent] Answer persisted to DB');
+            console.log('✅ [Data DNA Agent] Full response persisted to DB');
+            if (dataDnaResponse.chart_spec) {
+              console.log('📊 [Data DNA Agent] Chart spec included in response');
+            }
           } catch (dbError) {
             console.warn('⚠️ [Data DNA Agent] Could not persist answer:', dbError);
           }
@@ -356,7 +372,13 @@ export class AssemblyLineOrchestrator {
         yield {
           type: 'final_response',
           data: {
-            text: dataDnaResponse.answer,
+            text: answer,
+            chart_spec: dataDnaResponse.chart_spec,
+            metrics: dataDnaResponse.metrics,
+            confidence: dataDnaResponse.confidence,
+            follow_ups: dataDnaResponse.follow_ups,
+            reasoning: dataDnaResponse.reasoning,
+            data_sources: dataDnaResponse.data_sources,
             classification: 'DATA_DNA_ONLY'
           }
         };

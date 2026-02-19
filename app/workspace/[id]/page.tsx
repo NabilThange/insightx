@@ -126,22 +126,18 @@ export default function ActiveWorkspacePage({
       try {
         const chatMessages = await getMessages(activeChatId);
         const formattedMessages: Message[] = chatMessages.map((msg) => {
-          // Parse content if it's a string (JSON)
-          let parsedContent = msg.content;
-          if (typeof msg.content === "string") {
-            try {
-              parsedContent = JSON.parse(msg.content);
-            } catch (e) {
-              // If parsing fails, keep as string
-              parsedContent = msg.content;
-            }
-          }
+          // Keep content as-is - it's already in the correct format from the database
+          // If it's a JSON object, stringify it for the Message type
+          // If it's already a string, keep it as string
+          const content = typeof msg.content === 'string' 
+            ? msg.content 
+            : JSON.stringify(msg.content);
 
           return {
             id: msg.id,
             sessionId: sessionData?.id || workspaceId,
             type: msg.role === "user" ? "user" : "orchestrator",
-            content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+            content: content,
             timestamp: new Date(msg.created_at),
           };
         });
@@ -186,19 +182,16 @@ export default function ActiveWorkspacePage({
         const updatedMessages = await getMessages(chatId);
         setMessages(
           updatedMessages.map((msg) => {
-            let parsedContent = msg.content;
-            if (typeof msg.content === "string") {
-              try {
-                parsedContent = JSON.parse(msg.content);
-              } catch (e) {
-                parsedContent = msg.content;
-              }
-            }
+            // Keep content as-is - it's already in the correct format from the database
+            const content = typeof msg.content === 'string' 
+              ? msg.content 
+              : JSON.stringify(msg.content);
+
             return {
               id: msg.id,
               sessionId: sessionData.id,
               type: msg.role === "user" ? "user" : "orchestrator",
-              content: typeof parsedContent === "object" && parsedContent?.text ? parsedContent.text : parsedContent,
+              content: content,
               timestamp: new Date(msg.created_at),
             };
           })

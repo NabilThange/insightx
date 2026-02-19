@@ -34,16 +34,41 @@ export function parseComposerResponse(rawResponse: string): ComposerResponse | n
       return validateComposerResponse(json);
     }
 
-    // Strategy 2: Try to find JSON object directly
-    const jsonMatch = rawResponse.match(/\{[\s\S]*?"text"[\s\S]*?\}/);
-    if (jsonMatch) {
-      const json = JSON.parse(jsonMatch[0]);
+    // Strategy 2: Try to parse the entire response as JSON directly
+    // This handles cases where the response is pure JSON without markdown
+    try {
+      const json = JSON.parse(rawResponse);
       return validateComposerResponse(json);
+    } catch (e) {
+      // Not valid JSON, continue to next strategy
     }
 
-    // Strategy 3: Try to parse the entire response as JSON
-    const json = JSON.parse(rawResponse);
-    return validateComposerResponse(json);
+    // Strategy 3: Try to find and extract a complete JSON object
+    // This is a fallback for malformed responses
+    const trimmed = rawResponse.trim();
+    if (trimmed.startsWith('{')) {
+      // Find the matching closing brace
+      let braceCount = 0;
+      let endIndex = -1;
+      
+      for (let i = 0; i < trimmed.length; i++) {
+        if (trimmed[i] === '{') braceCount++;
+        if (trimmed[i] === '}') braceCount--;
+        
+        if (braceCount === 0) {
+          endIndex = i + 1;
+          break;
+        }
+      }
+      
+      if (endIndex > 0) {
+        const jsonStr = trimmed.substring(0, endIndex);
+        const json = JSON.parse(jsonStr);
+        return validateComposerResponse(json);
+      }
+    }
+
+    throw new Error('No valid JSON found in response');
   } catch (error) {
     console.error('[ResponseParser] Failed to parse Composer response:', error);
     console.error('[ResponseParser] Raw response:', rawResponse.substring(0, 500));
@@ -81,10 +106,25 @@ function validateComposerResponse(json: any): ComposerResponse {
  * Check if a response is a structured Composer response
  */
 export function isComposerResponse(text: string): boolean {
-  // Check if it contains JSON structure indicators
+  if (!text || typeof text !== 'string') return false;
+  
+  // Quick check: does it look like JSON?
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    // Try to parse it to confirm
+    try {
+      const parsed = JSON.parse(trimmed);
+      // Check if it has the required "text" field
+      return typeof parsed.text === 'string';
+    } catch {
+      return false;
+    }
+  }
+  
+  // Check if it contains JSON structure indicators (for markdown-wrapped JSON)
   return (
     text.includes('"text"') &&
-    (text.includes('```json') || text.includes('"metrics"') || text.includes('"follow_ups"'))
+    (text.includes('```json') || text.includes('"metrics"') || text.includes('"follow_ups"') || text.includes('"chart_spec"'))
   );
 }
 

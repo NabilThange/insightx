@@ -5,6 +5,7 @@
  * Renders structured JSON responses from the Composer agent
  */
 
+import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -35,6 +36,31 @@ interface ComposerResponseRendererProps {
 }
 
 const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#6366F1'];
+
+// Custom Tooltip matching InsightCard styling
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        backgroundColor: 'var(--bg-elevated)',
+        border: '1px solid var(--stroke)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        minWidth: '80px',
+        textAlign: 'left',
+        zIndex: 100,
+        pointerEvents: 'none'
+      }}>
+        <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', lineHeight: '1.2' }}>{label}</p>
+        <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 600, color: 'var(--fg)', lineHeight: '1.2' }}>
+          {payload[0].value}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function ComposerResponseRenderer({ response, onFollowUpClick }: ComposerResponseRendererProps) {
   return (
@@ -118,8 +144,11 @@ export default function ComposerResponseRenderer({ response, onFollowUpClick }: 
       {response.metrics && Object.keys(response.metrics).length > 0 && (
         <div className="flex flex-wrap gap-2">
           {Object.entries(response.metrics).map(([key, value]) => (
-            <div
+            <motion.div
               key={key}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
               className="bg-[var(--bg-elevated)] border border-[var(--stroke)] rounded-lg px-4 py-2"
             >
               <div className="text-xs text-[var(--text-muted)] capitalize">
@@ -128,100 +157,95 @@ export default function ComposerResponseRenderer({ response, onFollowUpClick }: 
               <div className="text-sm font-semibold text-[var(--fg)] mt-1">
                 {String(value)}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
 
-      {/* Chart */}
+      {/* Chart - With Report Card Styling */}
       {response.chart_spec && response.chart_spec.data && response.chart_spec.data.length > 0 && (
-        <div className="bg-[var(--bg-elevated)] border border-[var(--stroke)] rounded-lg p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+          className="chart-card"
+        >
           {response.chart_spec.title && (
-            <h3 className="text-lg font-semibold mb-4">{response.chart_spec.title}</h3>
+            <h3 className="chart-title">{response.chart_spec.title}</h3>
           )}
-          <ResponsiveContainer width="100%" height={300}>
-            {response.chart_spec.type === 'bar' && (
-              <BarChart data={response.chart_spec.data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
-                <XAxis
-                  dataKey={response.chart_spec.xAxis || 'x'}
-                  stroke="var(--fg)"
-                  tick={{ fill: 'var(--fg)' }}
-                />
-                <YAxis stroke="var(--fg)" tick={{ fill: 'var(--fg)' }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--stroke)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Bar
-                  dataKey={response.chart_spec.yAxis || 'y'}
-                  fill="#8B5CF6"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            )}
-            {response.chart_spec.type === 'line' && (
-              <LineChart data={response.chart_spec.data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
-                <XAxis
-                  dataKey={response.chart_spec.xAxis || 'x'}
-                  stroke="var(--fg)"
-                  tick={{ fill: 'var(--fg)' }}
-                />
-                <YAxis stroke="var(--fg)" tick={{ fill: 'var(--fg)' }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--stroke)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey={response.chart_spec.yAxis || 'y'}
-                  stroke="#8B5CF6"
-                  strokeWidth={2}
-                  dot={{ fill: '#8B5CF6', r: 4 }}
-                />
-              </LineChart>
-            )}
-            {response.chart_spec.type === 'pie' && (
-              <PieChart>
-                <Pie
-                  data={response.chart_spec.data}
-                  dataKey={response.chart_spec.yAxis || 'value'}
-                  nameKey={response.chart_spec.xAxis || 'name'}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label
-                >
-                  {response.chart_spec.data.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--stroke)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            )}
-          </ResponsiveContainer>
-        </div>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={300}>
+              {response.chart_spec.type === 'bar' && (
+                <BarChart data={response.chart_spec.data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
+                  <XAxis
+                    dataKey={response.chart_spec.xAxis || 'x'}
+                    stroke="var(--fg)"
+                    tick={{ fill: 'var(--fg)' }}
+                  />
+                  <YAxis stroke="var(--fg)" tick={{ fill: 'var(--fg)' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-elevated)', opacity: 0.5 }} />
+                  <Legend />
+                  <Bar
+                    dataKey={response.chart_spec.yAxis || 'y'}
+                    fill="#8B5CF6"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              )}
+              {response.chart_spec.type === 'line' && (
+                <LineChart data={response.chart_spec.data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
+                  <XAxis
+                    dataKey={response.chart_spec.xAxis || 'x'}
+                    stroke="var(--fg)"
+                    tick={{ fill: 'var(--fg)' }}
+                  />
+                  <YAxis stroke="var(--fg)" tick={{ fill: 'var(--fg)' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--stroke)', strokeWidth: 1 }} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey={response.chart_spec.yAxis || 'y'}
+                    stroke="#8B5CF6"
+                    strokeWidth={2}
+                    dot={{ fill: '#8B5CF6', r: 4 }}
+                    activeDot={{ r: 6, fill: 'var(--bg)', stroke: '#8B5CF6', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              )}
+              {response.chart_spec.type === 'pie' && (
+                <PieChart>
+                  <Pie
+                    data={response.chart_spec.data}
+                    dataKey={response.chart_spec.yAxis || 'value'}
+                    nameKey={response.chart_spec.xAxis || 'name'}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {response.chart_spec.data.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                </PieChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
       )}
 
       {/* Confidence Badge */}
       {response.confidence !== undefined && (
-        <div className="flex items-center gap-2">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+          className="flex items-center gap-2"
+        >
           <span className="text-sm text-[var(--text-muted)]">Confidence:</span>
           <div
             className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -234,25 +258,32 @@ export default function ComposerResponseRenderer({ response, onFollowUpClick }: 
           >
             {response.confidence}%
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Follow-up Questions */}
       {response.follow_ups && response.follow_ups.length > 0 && (
-        <div className="space-y-2">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.3 }}
+          className="space-y-2"
+        >
           <h4 className="text-sm font-semibold text-[var(--fg)]">Follow-up questions:</h4>
           <div className="flex flex-wrap gap-2">
             {response.follow_ups.map((question, index) => (
-              <button
+              <motion.button
                 key={index}
+                whileHover={{ translateY: -2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onFollowUpClick?.(question)}
                 className="bg-[var(--bg-elevated)] hover:bg-[var(--bg-surface)] border border-[var(--stroke)] rounded-full px-4 py-2 text-sm text-[var(--fg)] transition-colors"
               >
                 {question}
-              </button>
+              </motion.button>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* SQL Query (Collapsible) */}
@@ -276,6 +307,37 @@ export default function ComposerResponseRenderer({ response, onFollowUpClick }: 
           </div>
         </details>
       )}
+
+      <style jsx>{`
+        .chart-card {
+          background: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 12px;
+          padding: 1.5rem;
+          transition: all 0.2s ease-out;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .chart-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
+          border-color: var(--fg);
+        }
+
+        .chart-title {
+          font-size: 1rem;
+          font-weight: 500;
+          color: var(--fg);
+          margin: 0 0 1rem 0;
+          line-height: 1.4;
+        }
+
+        .chart-container {
+          height: 300px;
+          width: 100%;
+        }
+      `}</style>
     </div>
   );
 }
