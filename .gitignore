@@ -42,3 +42,13 @@ next-env.d.ts
 
 # reference/documentation from other projects
 /MASTER_CONTEXT
+/backend
+/FRONTEND_CONTEXT
+
+# markdown files (except README)
+*.md
+!README.md
+
+# kiro and agents
+.kiro/
+.agents/
