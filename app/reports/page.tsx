@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-
+import { Share2, ArrowDown } from "lucide-react";
 import ReportsHero from "@/components/layout/ReportsHero";
 import ReportsFilterBar from "@/components/interactive/ReportsFilterBar";
 import InsightCard from "@/components/data/InsightCard";
-import { ArrowDown } from "lucide-react";
+import ShareRoomModal from "@/components/interactive/ShareRoomModal";
 
 // Mock Data Types
 interface ReportData {
@@ -44,6 +44,7 @@ export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   // simple filter state placeholder
   const [filters, setFilters] = useState({});
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Mock Reports Data
   const pinnedReports: ReportData[] = [
@@ -135,9 +136,26 @@ export default function ReportsPage() {
 
   return (
     <div className="reports-page-wrapper">
-      {/* GlobalHeader is persistent in RootLayout */}
+      {/* Share Room Modal */}
+      <ShareRoomModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title="Reports"
+        context="reports"
+      />
 
       <main className="reports-content">
+        {/* Share Room Action */}
+        <div className="reports-share-bar">
+          <button
+            className="reports-share-btn"
+            onClick={() => setIsShareModalOpen(true)}
+          >
+            <Share2 size={14} />
+            <span>Share Room</span>
+          </button>
+        </div>
+
         <ReportsHero />
         <ReportsFilterBar onSearch={setSearchQuery} onFilterChange={setFilters} />
 
@@ -197,6 +215,35 @@ export default function ReportsPage() {
       </main>
 
       <style jsx>{`
+        .reports-share-bar {
+          display: flex;
+          justify-content: flex-end;
+          padding: 1.5rem 0 0;
+        }
+
+        .reports-share-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.625rem 1.25rem;
+          background: var(--fg);
+          color: var(--bg);
+          border: none;
+          border-radius: 2rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .reports-share-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
         .reports-page-wrapper {
           min-height: 100vh;
           background-color: var(--bg);

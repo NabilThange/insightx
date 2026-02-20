@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from "next/navigation";
 import { Edit2, Check, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import { updateChatTitle } from "@/lib/api/chats";
+import ShareRoomModal from "@/components/interactive/ShareRoomModal";
 
 interface WorkspaceNavbarProps {
   sessionId: string;
@@ -24,6 +25,9 @@ export default function WorkspaceNavbar({
   sidebarCollapsed = false
 }: WorkspaceNavbarProps) {
   const pathname = usePathname();
+
+  // Share Room Modal State
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Editable Title State
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -131,7 +135,10 @@ export default function WorkspaceNavbar({
 
         {/* Actions */}
         <div className="navbar-actions">
-          <button className="share-btn-premium">
+          <button
+            className="share-btn-premium"
+            onClick={() => setIsShareModalOpen(true)}
+          >
             <Share2 size={14} />
             <span>Share Room</span>
           </button>
@@ -142,6 +149,15 @@ export default function WorkspaceNavbar({
       </div>
 
       <div className="navbar-divider-bottom" />
+
+      {/* Share Room Modal */}
+      <ShareRoomModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        sessionId={sessionId}
+        title={chatTitle}
+        context="workspace"
+      />
 
       <style jsx>{`
         .global-navbar {
