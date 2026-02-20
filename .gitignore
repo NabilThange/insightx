@@ -48,7 +48,7 @@ next-env.d.ts
 # markdown files (except README)
 *.md
 !README.md
-
+!DESIGN_SYSTEM.md
 # kiro and agents
 .kiro/
 .agents/
