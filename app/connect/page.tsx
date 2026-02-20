@@ -342,12 +342,13 @@ export default function ConnectPage() {
       <style jsx>{`
         /* ─── Page wrapper ────────────────────────────────────────── */
         .connect-page-wrapper {
-          min-height: 100vh;
+          height: calc(100vh - 5rem);
+          overflow: hidden;
           background-color: var(--bg);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1.5rem;
+          padding: 1rem;
           font-family: 'PP Neue Montreal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
@@ -359,7 +360,8 @@ export default function ConnectPage() {
           border: 1px solid var(--stroke);
           border-radius: 1.5rem;
           overflow: hidden;
-          min-height: 560px;
+          min-height: 0;
+          max-height: calc(100vh - 7rem);
           display: flex;
           flex-direction: column;
           position: relative;
@@ -372,7 +374,7 @@ export default function ConnectPage() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 3rem 3rem;
+          padding: 2rem 3rem;
           position: relative;
           overflow: hidden;
         }
@@ -388,18 +390,18 @@ export default function ConnectPage() {
         }
 
         .connect-title {
-          font-size: 3.5rem;
+          font-size: 3rem;
           font-weight: 500;
           color: var(--fg);
           letter-spacing: -0.08rem;
           line-height: 1.05;
-          margin: 0 0 0.75rem;
+          margin: 0 0 0.5rem;
         }
 
         .connect-subtitle {
-          font-size: 1rem;
+          font-size: 0.9375rem;
           color: var(--text-muted);
-          margin: 0 0 2.5rem;
+          margin: 0 0 1.75rem;
           max-width: 28rem;
           line-height: 1.6;
           font-weight: 400;
@@ -413,7 +415,7 @@ export default function ConnectPage() {
           padding: 0.25rem;
           background: var(--loader-bg);
           border-radius: 9999px;
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
           border: 1px solid var(--stroke);
         }
 

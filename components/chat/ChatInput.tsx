@@ -154,11 +154,16 @@ export default function ChatInput({
       globalDrop={globalDrop && allowAttachments}
       multiple
       status={status}
-      style={{ 
+      style={{
         margin: "0",
-        border: isFocused ? "1px solid var(--accent, #4f46e5)" : "1px solid rgba(0, 0, 0, 0.12)",
-        boxShadow: isFocused ? "0 0 0 3px rgba(79, 70, 229, 0.1)" : "none",
-        transition: "all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1)",
+        background: "var(--bg)",
+        border: isFocused
+          ? "1px solid var(--accent, #4f46e5)"
+          : "1px solid var(--stroke, rgba(0,0,0,0.2))",
+        boxShadow: isFocused
+          ? "0 0 0 3px rgba(79, 70, 229, 0.08), 0 4px 16px rgba(0,0,0,0.06)"
+          : "0 2px 8px rgba(0,0,0,0.05)",
+        transition: "border-color 0.2s, box-shadow 0.2s",
       }}
     >
       {/* Attachment strip */}

@@ -237,11 +237,15 @@ export default function ChatPanel({
           50% { opacity: 1; }
         }
 
-        .chat-input-fixed { 
-          padding: 1rem 2rem 2rem; 
-          border-top: none; 
-          background: var(--bg);
-          transition: border-color 0.3s ease;
+        .chat-input-fixed {
+          padding: 1.25rem 2rem 1.75rem;
+          background: var(--loader-bg, #e0e0d8);
+          border-top: 1px solid var(--stroke);
+          background-image: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.04) 0%,
+            transparent 100%
+          );
         }
 
         .input-container-outer { 
