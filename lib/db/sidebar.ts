@@ -10,6 +10,13 @@ export interface CodeHistoryEntry {
   code: string;
   executed_at: string;
   description?: string;
+  // Enhanced execution metadata
+  message_id?: string;        // Link to chat message that triggered this
+  result?: any;               // Query output/results
+  row_count?: number;         // Number of rows returned
+  execution_time_ms?: number; // Execution duration
+  status?: 'success' | 'error'; // Execution status
+  error_message?: string;     // Error details if failed
 }
 
 export interface ContextAnalysis {
@@ -260,13 +267,21 @@ export class WorkspaceSidebarService {
   }
 
   /**
-   * Update SQL Code
+   * Update SQL Code with enhanced execution metadata
    */
   static async updateSQLCode(
     sessionId: string,
     code: string,
     addToHistory: boolean = true,
-    description?: string
+    options?: {
+      description?: string;
+      message_id?: string;
+      result?: any;
+      row_count?: number;
+      execution_time_ms?: number;
+      status?: 'success' | 'error';
+      error_message?: string;
+    }
   ): Promise<void> {
     const sidebar = await this.getSidebar(sessionId);
 
@@ -276,14 +291,19 @@ export class WorkspaceSidebarService {
 
     if (addToHistory) {
       const history = sidebar?.sql_code_history || [];
-      updates.sql_code_history = [
-        ...history,
-        {
-          code,
-          executed_at: new Date().toISOString(),
-          description,
-        },
-      ];
+      const historyEntry: CodeHistoryEntry = {
+        code,
+        executed_at: new Date().toISOString(),
+        description: options?.description,
+        message_id: options?.message_id,
+        result: options?.result,
+        row_count: options?.row_count,
+        execution_time_ms: options?.execution_time_ms,
+        status: options?.status || 'success',
+        error_message: options?.error_message,
+      };
+      
+      updates.sql_code_history = [...history, historyEntry];
     }
 
     const { error } = await supabase
@@ -298,13 +318,21 @@ export class WorkspaceSidebarService {
   }
 
   /**
-   * Update Python Code
+   * Update Python Code with enhanced execution metadata
    */
   static async updatePythonCode(
     sessionId: string,
     code: string,
     addToHistory: boolean = true,
-    description?: string
+    options?: {
+      description?: string;
+      message_id?: string;
+      result?: any;
+      row_count?: number;
+      execution_time_ms?: number;
+      status?: 'success' | 'error';
+      error_message?: string;
+    }
   ): Promise<void> {
     const sidebar = await this.getSidebar(sessionId);
 
@@ -314,14 +342,19 @@ export class WorkspaceSidebarService {
 
     if (addToHistory) {
       const history = sidebar?.python_code_history || [];
-      updates.python_code_history = [
-        ...history,
-        {
-          code,
-          executed_at: new Date().toISOString(),
-          description,
-        },
-      ];
+      const historyEntry: CodeHistoryEntry = {
+        code,
+        executed_at: new Date().toISOString(),
+        description: options?.description,
+        message_id: options?.message_id,
+        result: options?.result,
+        row_count: options?.row_count,
+        execution_time_ms: options?.execution_time_ms,
+        status: options?.status || 'success',
+        error_message: options?.error_message,
+      };
+      
+      updates.python_code_history = [...history, historyEntry];
     }
 
     const { error } = await supabase

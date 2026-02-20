@@ -196,26 +196,71 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
       case "sql":
         return (
           <div className="panel-container">
-            <h3 className="panel-title" style={{ color: "var(--info)" }}>SQL Analysis</h3>
-            {sidebarData?.current_sql_code ? (
-              <>
-                <pre className="code-block">
-                  <code>{sidebarData.current_sql_code}</code>
-                </pre>
-                {sidebarData.sql_code_history && sidebarData.sql_code_history.length > 1 && (
-                  <div className="history-section">
-                    <p className="history-title">History ({sidebarData.sql_code_history.length} queries)</p>
-                    <div className="history-list">
-                      {sidebarData.sql_code_history.slice(-5).reverse().map((entry, idx) => (
-                        <div key={idx} className="history-item">
-                          <p className="history-time">{new Date(entry.executed_at).toLocaleTimeString()}</p>
-                          <pre className="history-code">{entry.code.substring(0, 100)}...</pre>
-                        </div>
-                      ))}
+            <h3 className="panel-title" style={{ color: "var(--info)" }}>
+              SQL Executions ({sidebarData?.sql_code_history?.length || 0})
+            </h3>
+            
+            {sidebarData?.sql_code_history && sidebarData.sql_code_history.length > 0 ? (
+              <div className="execution-log">
+                {sidebarData.sql_code_history.slice().reverse().map((entry, idx) => (
+                  <div key={idx} className="execution-card">
+                    {/* Header */}
+                    <div className="execution-header">
+                      <span className="execution-time">
+                        {new Date(entry.executed_at).toLocaleTimeString()}
+                      </span>
+                      {entry.status === 'success' ? (
+                        <span className="status-badge success">✓ Success</span>
+                      ) : entry.status === 'error' ? (
+                        <span className="status-badge error">✗ Error</span>
+                      ) : null}
                     </div>
+                    
+                    {/* Description */}
+                    {entry.description && (
+                      <p className="execution-description">{entry.description}</p>
+                    )}
+                    
+                    {/* Metrics */}
+                    {(entry.row_count !== undefined || entry.execution_time_ms !== undefined) && (
+                      <div className="execution-metrics">
+                        {entry.row_count !== undefined && (
+                          <span className="metric">{entry.row_count.toLocaleString()} rows</span>
+                        )}
+                        {entry.execution_time_ms !== undefined && (
+                          <span className="metric">{entry.execution_time_ms}ms</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Code (collapsible) */}
+                    <details className="code-details">
+                      <summary>View SQL</summary>
+                      <pre className="code-block">
+                        <code>{entry.code}</code>
+                      </pre>
+                    </details>
+                    
+                    {/* Result Preview */}
+                    {entry.result && Array.isArray(entry.result) && entry.result.length > 0 && (
+                      <details className="result-details">
+                        <summary>View Results ({entry.result.length} rows)</summary>
+                        <pre className="result-block">
+                          {JSON.stringify(entry.result.slice(0, 5), null, 2)}
+                          {entry.result.length > 5 && `\n... ${entry.result.length - 5} more rows`}
+                        </pre>
+                      </details>
+                    )}
+                    
+                    {/* Error Message */}
+                    {entry.error_message && (
+                      <div className="error-message">
+                        <strong>Error:</strong> {entry.error_message}
+                      </div>
+                    )}
                   </div>
-                )}
-              </>
+                ))}
+              </div>
             ) : (
               <p className="panel-text">SQL queries will appear here when executed.</p>
             )}
@@ -225,26 +270,72 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
       case "python":
         return (
           <div className="panel-container">
-            <h3 className="panel-title" style={{ color: "var(--success)" }}>Python Sandbox</h3>
-            {sidebarData?.current_python_code ? (
-              <>
-                <pre className="code-block">
-                  <code>{sidebarData.current_python_code}</code>
-                </pre>
-                {sidebarData.python_code_history && sidebarData.python_code_history.length > 1 && (
-                  <div className="history-section">
-                    <p className="history-title">History ({sidebarData.python_code_history.length} executions)</p>
-                    <div className="history-list">
-                      {sidebarData.python_code_history.slice(-5).reverse().map((entry, idx) => (
-                        <div key={idx} className="history-item">
-                          <p className="history-time">{new Date(entry.executed_at).toLocaleTimeString()}</p>
-                          <pre className="history-code">{entry.code.substring(0, 100)}...</pre>
-                        </div>
-                      ))}
+            <h3 className="panel-title" style={{ color: "var(--success)" }}>
+              Python Executions ({sidebarData?.python_code_history?.length || 0})
+            </h3>
+            
+            {sidebarData?.python_code_history && sidebarData.python_code_history.length > 0 ? (
+              <div className="execution-log">
+                {sidebarData.python_code_history.slice().reverse().map((entry, idx) => (
+                  <div key={idx} className="execution-card">
+                    {/* Header */}
+                    <div className="execution-header">
+                      <span className="execution-time">
+                        {new Date(entry.executed_at).toLocaleTimeString()}
+                      </span>
+                      {entry.status === 'success' ? (
+                        <span className="status-badge success">✓ Success</span>
+                      ) : entry.status === 'error' ? (
+                        <span className="status-badge error">✗ Error</span>
+                      ) : null}
                     </div>
+                    
+                    {/* Description */}
+                    {entry.description && (
+                      <p className="execution-description">{entry.description}</p>
+                    )}
+                    
+                    {/* Metrics */}
+                    {(entry.row_count !== undefined || entry.execution_time_ms !== undefined) && (
+                      <div className="execution-metrics">
+                        {entry.row_count !== undefined && (
+                          <span className="metric">{entry.row_count.toLocaleString()} rows</span>
+                        )}
+                        {entry.execution_time_ms !== undefined && (
+                          <span className="metric">{entry.execution_time_ms}ms</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Code (collapsible) */}
+                    <details className="code-details">
+                      <summary>View Python Code</summary>
+                      <pre className="code-block">
+                        <code>{entry.code}</code>
+                      </pre>
+                    </details>
+                    
+                    {/* Result Preview */}
+                    {entry.result && (
+                      <details className="result-details">
+                        <summary>View Output</summary>
+                        <pre className="result-block">
+                          {typeof entry.result === 'string' 
+                            ? entry.result 
+                            : JSON.stringify(entry.result, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    
+                    {/* Error Message */}
+                    {entry.error_message && (
+                      <div className="error-message">
+                        <strong>Error:</strong> {entry.error_message}
+                      </div>
+                    )}
                   </div>
-                )}
-              </>
+                ))}
+              </div>
             ) : (
               <p className="panel-text">Python code will appear here when executed.</p>
             )}
@@ -455,6 +546,127 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
           color: var(--fg);
           white-space: pre-wrap;
           word-break: break-all;
+        }
+
+        /* Execution Log Styles */
+        .execution-log {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .execution-card {
+          background: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 0.5rem;
+          padding: 1rem;
+          transition: border-color 0.2s ease;
+        }
+
+        .execution-card:hover {
+          border-color: var(--info);
+        }
+
+        .execution-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.5rem;
+        }
+
+        .execution-time {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+
+        .status-badge {
+          font-size: 0.7rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 0.25rem;
+          font-weight: 600;
+        }
+
+        .status-badge.success {
+          background: rgba(34, 197, 94, 0.1);
+          color: rgb(34, 197, 94);
+        }
+
+        .status-badge.error {
+          background: rgba(239, 68, 68, 0.1);
+          color: rgb(239, 68, 68);
+        }
+
+        .execution-description {
+          font-size: 0.875rem;
+          color: var(--fg);
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+        }
+
+        .execution-metrics {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .metric {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .code-details, .result-details {
+          margin-top: 0.75rem;
+        }
+
+        .code-details summary, .result-details summary {
+          font-size: 0.75rem;
+          color: var(--info);
+          cursor: pointer;
+          user-select: none;
+          font-weight: 600;
+          padding: 0.5rem;
+          background: var(--bg-surface);
+          border-radius: 0.375rem;
+          transition: all 0.2s ease;
+        }
+
+        .code-details summary:hover, .result-details summary:hover {
+          color: var(--accent);
+          background: var(--loader-bg);
+        }
+
+        .code-details[open] summary, .result-details[open] summary {
+          margin-bottom: 0.5rem;
+        }
+
+        .result-block {
+          margin-top: 0.5rem;
+          background: var(--bg-surface);
+          border: 1px solid var(--stroke);
+          border-radius: 0.375rem;
+          padding: 0.75rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.7rem;
+          overflow-x: auto;
+          max-height: 300px;
+          overflow-y: auto;
+          color: var(--fg);
+        }
+
+        .error-message {
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          background: rgba(239, 68, 68, 0.05);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          color: rgb(239, 68, 68);
+        }
+
+        .error-message strong {
+          font-weight: 600;
         }
       `}</style>
     </aside>

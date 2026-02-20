@@ -3,6 +3,8 @@
  * Calls real backend API for SQL/Python execution
  */
 
+import { WorkspaceSidebarService } from '@/lib/db/sidebar';
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export interface ToolCallResult {
@@ -18,6 +20,7 @@ export class ToolExecutor {
   private accumulatedInsights: any[] = [];
   private codeWriteCallback?: (code: string, language: string, description?: string) => void;
   private toolCallCallback?: (toolName: string, status: 'start' | 'success' | 'error', data?: any) => void;
+  private currentMessageId?: string;
 
   constructor(
     sessionId: string, 
@@ -27,6 +30,13 @@ export class ToolExecutor {
     this.sessionId = sessionId;
     this.codeWriteCallback = codeWriteCallback;
     this.toolCallCallback = toolCallCallback;
+  }
+
+  /**
+   * Set the current message ID for linking executions to messages
+   */
+  setMessageContext(messageId: string): void {
+    this.currentMessageId = messageId;
   }
 
   /**
@@ -269,6 +279,8 @@ export class ToolExecutor {
    * Run SQL query via real backend
    */
   private async runSQL(args: { sql: string; limit?: number }): Promise<any> {
+    const startTime = Date.now();
+    
     try {
       console.log('[ToolExecutor] 🔍 Executing SQL query...');
       console.log(`[ToolExecutor] 📝 Query: ${args.sql.substring(0, 150)}${args.sql.length > 150 ? '...' : ''}`);
@@ -287,12 +299,46 @@ export class ToolExecutor {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || `SQL execution failed: ${response.statusText}`);
+        const errorMessage = errorData.detail || `SQL execution failed: ${response.statusText}`;
+        
+        // Save error to sidebar
+        const executionTime = Date.now() - startTime;
+        await WorkspaceSidebarService.updateSQLCode(
+          this.sessionId,
+          args.sql,
+          true,
+          {
+            description: 'SQL query failed',
+            message_id: this.currentMessageId,
+            status: 'error',
+            error_message: errorMessage,
+            execution_time_ms: executionTime,
+          }
+        ).catch(err => console.error('[ToolExecutor] Failed to save SQL error to sidebar:', err));
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      const executionTime = Date.now() - startTime;
       const rowCount = result.data.rows?.length || 0;
-      console.log(`[ToolExecutor] ✅ SQL execution successful: ${rowCount} rows returned`);
+      
+      console.log(`[ToolExecutor] ✅ SQL execution successful: ${rowCount} rows returned in ${executionTime}ms`);
+      
+      // Save successful execution to sidebar with full metadata
+      await WorkspaceSidebarService.updateSQLCode(
+        this.sessionId,
+        args.sql,
+        true,
+        {
+          description: 'SQL query executed',
+          message_id: this.currentMessageId,
+          result: result.data.rows,
+          row_count: rowCount,
+          execution_time_ms: executionTime,
+          status: 'success',
+        }
+      ).catch(err => console.error('[ToolExecutor] Failed to save SQL to sidebar:', err));
       
       return result.data;
     } catch (error) {
@@ -305,6 +351,8 @@ export class ToolExecutor {
    * Run Python code via real backend
    */
   private async runPython(args: { code: string; timeout?: number }): Promise<any> {
+    const startTime = Date.now();
+    
     try {
       console.log('[ToolExecutor] 📊 Executing Python code...');
       console.log(`[ToolExecutor] 📝 Code: ${args.code.substring(0, 150)}${args.code.length > 150 ? '...' : ''}`);
@@ -323,12 +371,45 @@ export class ToolExecutor {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || `Python execution failed: ${response.statusText}`);
+        const errorMessage = errorData.detail || `Python execution failed: ${response.statusText}`;
+        
+        // Save error to sidebar
+        const executionTime = Date.now() - startTime;
+        await WorkspaceSidebarService.updatePythonCode(
+          this.sessionId,
+          args.code,
+          true,
+          {
+            description: 'Python execution failed',
+            message_id: this.currentMessageId,
+            status: 'error',
+            error_message: errorMessage,
+            execution_time_ms: executionTime,
+          }
+        ).catch(err => console.error('[ToolExecutor] Failed to save Python error to sidebar:', err));
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('[ToolExecutor] ✅ Python execution successful');
+      const executionTime = Date.now() - startTime;
+      
+      console.log(`[ToolExecutor] ✅ Python execution successful in ${executionTime}ms`);
       console.log(`[ToolExecutor] 📊 Result: ${JSON.stringify(result.data).substring(0, 150)}...`);
+      
+      // Save successful execution to sidebar with full metadata
+      await WorkspaceSidebarService.updatePythonCode(
+        this.sessionId,
+        args.code,
+        true,
+        {
+          description: 'Python analysis executed',
+          message_id: this.currentMessageId,
+          result: result.data,
+          execution_time_ms: executionTime,
+          status: 'success',
+        }
+      ).catch(err => console.error('[ToolExecutor] Failed to save Python to sidebar:', err));
       
       return result.data;
     } catch (error) {
