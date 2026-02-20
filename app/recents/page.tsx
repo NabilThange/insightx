@@ -21,14 +21,14 @@ interface SessionWithChats {
   chats: Chat[];
 }
 
-// ─── Color palette (same as sidebar) ─────────────────────────────────────────
+// ─── Color palette — DS semantic colors ─────────────────────────────────────
 const PILL_COLORS = [
-  { bg: "#dde4f5", text: "#1a3a8f" },
-  { bg: "#d4edda", text: "#1a6b35" },
-  { bg: "#fde8d8", text: "#8f3a1a" },
-  { bg: "#f5d4f5", text: "#6b1a8f" },
-  { bg: "#d4f0f5", text: "#1a6b75" },
-  { bg: "#f5f5d4", text: "#6b6b1a" },
+  { bg: "rgba(30, 64, 175, 0.1)", text: "#1e40af" },  // info
+  { bg: "rgba(45, 80, 22, 0.1)", text: "#2d5016" },  // success
+  { bg: "rgba(217, 119, 6, 0.1)", text: "#d97706" },  // warning
+  { bg: "rgba(185, 28, 28, 0.1)", text: "#b91c1c" },  // error
+  { bg: "rgba(79, 70, 229, 0.1)", text: "#4f46e5" },  // accent
+  { bg: "rgba(31, 31, 31, 0.08)", text: "#1f1f1f" },  // fg
 ];
 
 const getDeterministicColor = (filename: string) => {
@@ -377,7 +377,6 @@ function Styles() {
 
       .session-card:hover {
         border-color: var(--fg);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
       }
 
       /* Session header row */

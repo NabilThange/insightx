@@ -8,8 +8,6 @@ import {
   Database,
   FileSpreadsheet,
   ArrowRight,
-  Command,
-  LayoutGrid,
 } from "lucide-react";
 import ScanningAnimation from "@/components/data/ScanningAnimation";
 import DataDnaPreview from "@/components/data/DataDnaPreview";
@@ -70,7 +68,6 @@ export default function ConnectPage() {
     try {
       logger.api("Starting file upload", { filename: file.name, size: file.size });
 
-      // 1. Upload file to backend with progress
       const uploadResponse = await uploadFileWithProgress(file, (progress) => {
         setUploadProgress(progress);
       });
@@ -78,14 +75,11 @@ export default function ConnectPage() {
       logger.api("File uploaded successfully", uploadResponse);
       setScanStatus("processing");
 
-      // Store session_id in localStorage
       localStorage.setItem("current_session_id", uploadResponse.session_id);
 
-      // 2. Trigger exploration
       logger.api("Triggering data exploration", { sessionId: uploadResponse.session_id });
       await exploreSession(uploadResponse.session_id);
 
-      // 3. Poll until ready and get Data DNA
       logger.api("Polling for ready status...");
       const session = await pollSessionUntilReady(
         uploadResponse.session_id,
@@ -94,15 +88,9 @@ export default function ConnectPage() {
 
       logger.api("Session ready", session);
 
-      // Convert backend Data DNA to frontend format
       const dna = formatSessionToDataDNA(session);
-
       setGeneratedDNA(dna);
-
-      // Store in Zustand for backward compatibility
       setDataDNA(dna);
-
-      // Trigger completion sequence in animation
       setScanStatus("complete");
 
     } catch (error) {
@@ -150,14 +138,8 @@ export default function ConnectPage() {
     if (!generatedDNA) return;
 
     try {
-      // Get session_id from localStorage
       const sessionId = localStorage.getItem("current_session_id");
-
-      if (!sessionId) {
-        throw new Error("No session ID found");
-      }
-
-      // Redirect to workspace with real session ID
+      if (!sessionId) throw new Error("No session ID found");
       router.push(`/workspace/${sessionId}`);
     } catch (error) {
       console.error("Failed to continue:", error);
@@ -171,20 +153,16 @@ export default function ConnectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f1efe7] flex items-center justify-center p-4 md:p-6 font-sans">
-
+    <div className="connect-page-wrapper">
       {/* ELEVATED CONTAINER */}
       <motion.div
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-4xl bg-white rounded-[2rem] shadow-xl shadow-black/5 overflow-hidden min-h-[600px] flex flex-col relative z-10"
+        className="connect-card"
       >
-
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 relative overflow-hidden">
-
-          {/* HERO SECTION */}
+        <main className="connect-main">
           <AnimatePresence mode="wait">
             {uploadState === "idle" && (
               <motion.div
@@ -193,119 +171,68 @@ export default function ConnectPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full max-w-2xl flex flex-col items-center text-center z-10"
+                className="connect-hero"
               >
-                <motion.h1
-                  className="text-5xl md:text-6xl font-serif text-[#1f1f1f] mb-3 tracking-tight"
-                  style={{ fontFamily: '"PP Neue Montreal", sans-serif', fontWeight: 500 }}
-                >
-                  The Bridge
-                </motion.h1>
-                <p className="text-lg text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
+                {/* HEADING */}
+                <h1 className="connect-title">The Bridge</h1>
+                <p className="connect-subtitle">
                   Connect your data sources to begin exploratory analysis. Secure, fast, and intelligent.
                 </p>
 
                 {/* SEGMENTED CONTROL */}
-                <div className="bg-gray-100 p-1 rounded-full flex items-center gap-1 mb-10 shadow-inner">
-                  <button
-                    onClick={() => setActiveSource("upload")}
-                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "upload"
-                      ? "text-black shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                      }`}
-                  >
-                    {activeSource === "upload" && (
-                      <motion.div
-                        layoutId="active-pill"
-                        className="absolute inset-0 bg-white rounded-full shadow-sm z-0"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Upload size={15} /> Upload CSV
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setActiveSource("database")}
-                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "database"
-                      ? "text-black shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                      }`}
-                  >
-                    {activeSource === "database" && (
-                      <motion.div
-                        layoutId="active-pill"
-                        className="absolute inset-0 bg-white rounded-full shadow-sm z-0"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Database size={15} /> Database
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setActiveSource("sample")}
-                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 relative ${activeSource === "sample"
-                      ? "text-black shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                      }`}
-                  >
-                    {activeSource === "sample" && (
-                      <motion.div
-                        layoutId="active-pill"
-                        className="absolute inset-0 bg-white rounded-full shadow-sm z-0"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <FileSpreadsheet size={15} /> Sample Data
-                    </span>
-                  </button>
+                <div className="source-pills">
+                  {(["upload", "database", "sample"] as DataSource[]).map((src) => (
+                    <button
+                      key={src}
+                      onClick={() => setActiveSource(src)}
+                      className={`source-pill ${activeSource === src ? "source-pill-active" : ""}`}
+                    >
+                      {activeSource === src && (
+                        <motion.div
+                          layoutId="active-pill"
+                          className="source-pill-bg"
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                      )}
+                      <span className="source-pill-label">
+                        {src === "upload" && <><Upload size={14} /> Upload CSV</>}
+                        {src === "database" && <><Database size={14} /> Database</>}
+                        {src === "sample" && <><FileSpreadsheet size={14} /> Sample Data</>}
+                      </span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* ACTIVE SOURCE CONTENT */}
                 <motion.div
                   layout
-                  className="w-full max-w-md"
+                  className="source-content"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.25 }}
                 >
+                  {/* UPLOAD */}
                   {activeSource === "upload" && (
                     <div
-                      className={`
-                             group relative border-2 border-dashed rounded-[1.5rem] p-8 md:p-10 
-                             flex flex-col items-center justify-center text-center
-                             transition-all duration-200 cursor-pointer overflow-hidden
-                             bg-white
-                             ${dragActive
-                          ? "border-blue-500 bg-blue-50/10 scale-[1.01]"
-                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/30 hover:shadow-sm"
-                        }
-                           `}
+                      className={`upload-zone ${dragActive ? "upload-zone-active" : ""}`}
                       onDragEnter={handleDragOver}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 group-hover:bg-white group-hover:shadow-md transition-all duration-300">
-                        <Upload size={28} className="text-gray-400 group-hover:text-black transition-colors" strokeWidth={1.5} />
+                      <div className="upload-icon-wrap">
+                        <Upload size={26} className="upload-icon" strokeWidth={1.5} />
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-1">
-                        Drop your CSV file here
-                      </h3>
-                      <p className="text-sm text-gray-400 mb-6">
-                        or click to browse from your computer
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-gray-300 uppercase tracking-wider font-semibold">
+                      <h3 className="upload-title">Drop your CSV file here</h3>
+                      <p className="upload-hint">or click to browse from your computer</p>
+                      <div className="upload-formats">
                         <span>CSV</span>
-                        <span>•</span>
+                        <span className="upload-formats-dot">·</span>
                         <span>XLSX</span>
-                        <span>•</span>
+                        <span className="upload-formats-dot">·</span>
                         <span>JSON</span>
                       </div>
-
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -316,44 +243,46 @@ export default function ConnectPage() {
                     </div>
                   )}
 
+                  {/* DATABASE */}
                   {activeSource === "database" && (
-                    <div className="bg-white border border-gray-200 rounded-[1.5rem] p-8 shadow-sm">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
-                          <Database size={20} className="text-gray-600" />
+                    <div className="db-panel">
+                      <div className="db-header">
+                        <div className="db-icon-wrap">
+                          <Database size={18} />
                         </div>
-                        <div className="text-left">
-                          <h3 className="font-medium text-gray-900">PostgreSQL Connection</h3>
-                          <p className="text-xs text-gray-500">Read-only access required</p>
+                        <div>
+                          <h3 className="db-title">PostgreSQL Connection</h3>
+                          <p className="db-hint">Read-only access required</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <input className="col-span-2 p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Host (e.g. aws.amazon.com)" />
-                        <input className="p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Port" />
-                        <input className="p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Database" />
-                        <input className="col-span-2 p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" placeholder="Username" />
-                        <input className="col-span-2 p-3 bg-gray-50 rounded-xl border-none text-sm outline-none focus:ring-1 focus:ring-black/10 transition-all" type="password" placeholder="Password" />
+                      <div className="db-fields">
+                        <input className="ds-input col-2" placeholder="Host (e.g. aws.amazon.com)" />
+                        <input className="ds-input" placeholder="Port" />
+                        <input className="ds-input" placeholder="Database" />
+                        <input className="ds-input col-2" placeholder="Username" />
+                        <input className="ds-input col-2" type="password" placeholder="Password" />
                       </div>
-                      <button className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black transition-colors">
+                      <button className="ds-btn-primary w-full">
                         Test Connection
                       </button>
                     </div>
                   )}
 
+                  {/* SAMPLE */}
                   {activeSource === "sample" && (
-                    <div className="bg-white border border-gray-200 rounded-[1.5rem] p-8 shadow-sm text-center">
-                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                        <FileSpreadsheet size={32} strokeWidth={1.5} />
+                    <div className="sample-panel">
+                      <div className="sample-icon-wrap">
+                        <FileSpreadsheet size={28} strokeWidth={1.5} />
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Fintech Growth Dataset</h3>
-                      <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                      <h3 className="sample-title">Fintech Growth Dataset</h3>
+                      <p className="sample-desc">
                         A generated dataset containing 250k rows of transaction data, including fraud patterns and user churn signals.
                       </p>
                       <button
                         onClick={handleLoadSample}
-                        className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black transition-colors flex items-center justify-center gap-2 group"
+                        className="ds-btn-primary w-full"
                       >
-                        Generate & Load <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                        Generate &amp; Load <ArrowRight size={15} />
                       </button>
                     </div>
                   )}
@@ -367,7 +296,7 @@ export default function ConnectPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="w-full h-full flex flex-col items-center justify-center"
+                className="connect-scanning"
               >
                 {uploadState === "scanning" ? (
                   <ScanningAnimation
@@ -381,26 +310,25 @@ export default function ConnectPage() {
                   />
                 ) : (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center text-center w-full max-w-4xl"
+                    className="preview-wrap"
                   >
-                    <div className="w-full mb-8">
+                    <div className="preview-dna">
                       {generatedDNA && <DataDnaPreview dataDNA={generatedDNA} />}
                     </div>
-
-                    <div className="flex gap-4">
+                    <div className="preview-actions">
                       <button
                         onClick={() => setUploadState("idle")}
-                        className="px-6 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                        className="ds-btn-secondary"
                       >
                         Upload Another
                       </button>
                       <button
                         onClick={handleContinue}
-                        className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black transition-colors flex items-center gap-2 shadow-lg shadow-black/20"
+                        className="ds-btn-primary"
                       >
-                        Enter Workspace <ArrowRight size={16} />
+                        Enter Workspace <ArrowRight size={15} />
                       </button>
                     </div>
                   </motion.div>
@@ -408,16 +336,440 @@ export default function ConnectPage() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* BACKGROUND DECORATION */}
-          <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-[0.03] z-0">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-black rounded-full blur-3xl translate-y-[-50%]"></div>
-            <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-black rounded-full blur-3xl translate-y-[50%]"></div>
-          </div>
-
         </main>
       </motion.div>
-    </div>
 
+      <style jsx>{`
+        /* ─── Page wrapper ────────────────────────────────────────── */
+        .connect-page-wrapper {
+          min-height: 100vh;
+          background-color: var(--bg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+          font-family: 'PP Neue Montreal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* ─── Main card ───────────────────────────────────────────── */
+        .connect-card {
+          width: 100%;
+          max-width: 48rem;
+          background: var(--bg-elevated);
+          border: 1px solid var(--stroke);
+          border-radius: 1.5rem;
+          overflow: hidden;
+          min-height: 560px;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+        }
+
+        /* ─── Main content ────────────────────────────────────────── */
+        .connect-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 3rem 3rem;
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* ─── Hero ────────────────────────────────────────────────── */
+        .connect-hero {
+          width: 100%;
+          max-width: 36rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+
+        .connect-title {
+          font-size: 3.5rem;
+          font-weight: 500;
+          color: var(--fg);
+          letter-spacing: -0.08rem;
+          line-height: 1.05;
+          margin: 0 0 0.75rem;
+        }
+
+        .connect-subtitle {
+          font-size: 1rem;
+          color: var(--text-muted);
+          margin: 0 0 2.5rem;
+          max-width: 28rem;
+          line-height: 1.6;
+          font-weight: 400;
+        }
+
+        /* ─── Source pills ────────────────────────────────────────── */
+        .source-pills {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem;
+          background: var(--loader-bg);
+          border-radius: 9999px;
+          margin-bottom: 2rem;
+          border: 1px solid var(--stroke);
+        }
+
+        .source-pill {
+          position: relative;
+          padding: 0.5rem 1.125rem;
+          border-radius: 9999px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 0.875rem;
+          font-weight: 500;
+          font-family: inherit;
+          color: var(--text-muted);
+          transition: color 0.2s;
+        }
+
+        .source-pill-active {
+          color: var(--fg);
+        }
+
+        .source-pill-bg {
+          position: absolute;
+          inset: 0;
+          background: var(--bg);
+          border-radius: 9999px;
+          border: 1px solid var(--stroke);
+          z-index: 0;
+        }
+
+        .source-pill-label {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+        }
+
+        /* ─── Source content area ─────────────────────────────────── */
+        .source-content {
+          width: 100%;
+          max-width: 28rem;
+        }
+
+        /* ─── Upload zone ─────────────────────────────────────────── */
+        .upload-zone {
+          border: 1.5px dashed var(--stroke);
+          border-radius: 1rem;
+          padding: 2.5rem 2rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          cursor: pointer;
+          background: var(--bg);
+          transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-zone:hover {
+          border-color: var(--fg);
+          background: var(--bg-elevated);
+        }
+
+        .upload-zone-active {
+          border-color: var(--accent);
+          background: var(--bg-elevated);
+          transform: scale(1.01);
+        }
+
+        .upload-icon-wrap {
+          width: 3.5rem;
+          height: 3.5rem;
+          background: var(--loader-bg);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1rem;
+          transition: background 0.2s;
+        }
+
+        .upload-zone:hover .upload-icon-wrap {
+          background: var(--bg);
+        }
+
+        .upload-icon {
+          color: var(--text-muted);
+          transition: color 0.2s;
+        }
+
+        .upload-zone:hover .upload-icon {
+          color: var(--fg);
+        }
+
+        .upload-title {
+          font-size: 1rem;
+          font-weight: 500;
+          color: var(--fg);
+          margin: 0 0 0.25rem;
+        }
+
+        .upload-hint {
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          margin: 0 0 1.25rem;
+          font-weight: 400;
+        }
+
+        .upload-formats {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+          opacity: 0.6;
+        }
+
+        .upload-formats-dot {
+          opacity: 0.4;
+        }
+
+        /* ─── Database panel ──────────────────────────────────────── */
+        .db-panel {
+          background: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 1rem;
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .db-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .db-icon-wrap {
+          width: 2.5rem;
+          height: 2.5rem;
+          background: var(--loader-bg);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--fg);
+          flex-shrink: 0;
+        }
+
+        .db-title {
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: var(--fg);
+          margin: 0;
+        }
+
+        .db-hint {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin: 0.1rem 0 0;
+          font-weight: 400;
+        }
+
+        .db-fields {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.625rem;
+        }
+
+        /* ─── Sample panel ────────────────────────────────────────── */
+        .sample-panel {
+          background: var(--bg);
+          border: 1px solid var(--stroke);
+          border-radius: 1rem;
+          padding: 2rem 1.5rem;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .sample-icon-wrap {
+          width: 3.5rem;
+          height: 3.5rem;
+          background: var(--loader-bg);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--accent);
+        }
+
+        .sample-title {
+          font-size: 1rem;
+          font-weight: 500;
+          color: var(--fg);
+          margin: 0;
+        }
+
+        .sample-desc {
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          margin: 0;
+          line-height: 1.6;
+          font-weight: 400;
+          max-width: 22rem;
+        }
+
+        /* ─── Scanning / Preview ──────────────────────────────────── */
+        .connect-scanning {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .preview-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          width: 100%;
+          max-width: 56rem;
+        }
+
+        .preview-dna {
+          width: 100%;
+          margin-bottom: 2rem;
+        }
+
+        .preview-actions {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+        }
+
+        /* ─── Design System Primitives ────────────────────────────── */
+
+        /* Primary button */
+        .ds-btn-primary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: var(--fg);
+          color: var(--bg);
+          border: 1px solid var(--fg);
+          border-radius: 0.375rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .ds-btn-primary:hover {
+          transform: scale(1.02);
+        }
+
+        .ds-btn-primary:active {
+          transform: scale(0.98);
+        }
+
+        /* Secondary button */
+        .ds-btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: transparent;
+          color: var(--fg);
+          border: 1px solid var(--stroke);
+          border-radius: 0.375rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
+        }
+
+        .ds-btn-secondary:hover {
+          background: var(--bg-elevated);
+          border-color: var(--fg);
+        }
+
+        /* Input */
+        .ds-input {
+          background: var(--bg-elevated);
+          border: 1px solid var(--stroke);
+          border-radius: 0.375rem;
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+          font-family: inherit;
+          color: var(--fg);
+          outline: none;
+          width: 100%;
+          transition: border-color 0.2s;
+        }
+
+        .ds-input::placeholder {
+          color: var(--text-muted);
+        }
+
+        .ds-input:focus {
+          border-color: var(--accent);
+        }
+
+        .ds-input.col-2 {
+          grid-column: span 2;
+        }
+
+        .w-full {
+          width: 100%;
+        }
+
+        /* ─── Responsive ──────────────────────────────────────────── */
+        @media (max-width: 640px) {
+          .connect-main {
+            padding: 2rem 1.5rem;
+          }
+
+          .connect-title {
+            font-size: 2.5rem;
+          }
+
+          .source-pills {
+            gap: 0;
+          }
+
+          .source-pill {
+            padding: 0.5rem 0.875rem;
+            font-size: 0.8125rem;
+          }
+
+          .preview-actions {
+            flex-direction: column;
+            width: 100%;
+          }
+
+          .ds-btn-primary,
+          .ds-btn-secondary {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
