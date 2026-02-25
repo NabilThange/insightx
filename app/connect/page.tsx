@@ -667,21 +667,27 @@ export default function ConnectPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.5rem;
+          gap: 16px;
+          height: 44px;
+          padding: 0 20px;
           background: var(--fg);
           color: var(--bg);
           border: 1px solid var(--fg);
-          border-radius: 0.375rem;
-          font-size: 0.9375rem;
+          border-radius: 10px;
+          font-size: 14px;
           font-weight: 500;
           font-family: inherit;
           cursor: pointer;
-          transition: transform 0.2s, opacity 0.2s;
+          transition: background 0.2s, opacity 0.2s, transform 0.2s;
+          outline: none;
+        }
+
+        .ds-btn-primary:focus-visible {
+          box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
         }
 
         .ds-btn-primary:hover {
-          transform: scale(1.02);
+          opacity: 0.9;
         }
 
         .ds-btn-primary:active {
@@ -693,21 +699,27 @@ export default function ConnectPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.5rem;
+          gap: 16px;
+          height: 44px;
+          padding: 0 20px;
           background: transparent;
           color: var(--fg);
           border: 1px solid var(--stroke);
-          border-radius: 0.375rem;
-          font-size: 0.9375rem;
+          border-radius: 10px;
+          font-size: 14px;
           font-weight: 500;
           font-family: inherit;
           cursor: pointer;
           transition: background 0.2s, border-color 0.2s;
+          outline: none;
+        }
+
+        .ds-btn-secondary:focus-visible {
+          box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
         }
 
         .ds-btn-secondary:hover {
-          background: var(--bg-elevated);
+          background: var(--loader-bg);
           border-color: var(--fg);
         }
 

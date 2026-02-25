@@ -33,7 +33,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
         console.log("🔄 [WorkspaceRightSidebar] Loading sidebar data for session:", sessionId);
         const data = await WorkspaceSidebarService.getSidebar(sessionId);
         console.log("✅ [WorkspaceRightSidebar] Sidebar data loaded:", data ? "Yes" : "No");
-        
+
         if (data) {
           // Defensive parsing: handle both string and object data_dna
           let parsedDataDNA = data.data_dna;
@@ -46,7 +46,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
               parsedDataDNA = null;
             }
           }
-          
+
           // Normalize snake_case to camelCase for frontend compatibility
           if (parsedDataDNA && typeof parsedDataDNA === 'object') {
             // Basic counts
@@ -58,7 +58,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
               parsedDataDNA.columnCount = parsedDataDNA.col_count;
               console.log("🔧 [WorkspaceRightSidebar] Normalized col_count to columnCount:", parsedDataDNA.columnCount);
             }
-            
+
             // Patterns and insights
             if ('detected_patterns' in parsedDataDNA && !('patterns' in parsedDataDNA)) {
               parsedDataDNA.patterns = parsedDataDNA.detected_patterns;
@@ -72,31 +72,31 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
               parsedDataDNA.accumulatedInsights = parsedDataDNA.accumulated_insights;
               console.log("🔧 [WorkspaceRightSidebar] Normalized accumulated_insights to accumulatedInsights:", parsedDataDNA.accumulatedInsights?.length);
             }
-            
+
             // Segment breakdown
             if ('segment_breakdown' in parsedDataDNA && !('segmentBreakdown' in parsedDataDNA)) {
               parsedDataDNA.segmentBreakdown = parsedDataDNA.segment_breakdown;
               console.log("🔧 [WorkspaceRightSidebar] Normalized segment_breakdown to segmentBreakdown:", parsedDataDNA.segmentBreakdown?.length);
             }
-            
+
             // Outlier summary
             if ('outlier_summary' in parsedDataDNA && !('outlierSummary' in parsedDataDNA)) {
               parsedDataDNA.outlierSummary = parsedDataDNA.outlier_summary;
               console.log("🔧 [WorkspaceRightSidebar] Normalized outlier_summary to outlierSummary:", parsedDataDNA.outlierSummary?.length);
             }
-            
+
             // Missing summary
             if ('missing_summary' in parsedDataDNA && !('missingSummary' in parsedDataDNA)) {
               parsedDataDNA.missingSummary = parsedDataDNA.missing_summary;
               console.log("🔧 [WorkspaceRightSidebar] Normalized missing_summary to missingSummary");
             }
-            
+
             // Datetime info
             if ('datetime_info' in parsedDataDNA && !('datetimeInfo' in parsedDataDNA)) {
               parsedDataDNA.datetimeInfo = parsedDataDNA.datetime_info;
               console.log("🔧 [WorkspaceRightSidebar] Normalized datetime_info to datetimeInfo");
             }
-            
+
             // Ensure arrays exist with defaults
             if (!parsedDataDNA.patterns) parsedDataDNA.patterns = [];
             if (!parsedDataDNA.insights) parsedDataDNA.insights = [];
@@ -104,10 +104,10 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
             if (!parsedDataDNA.columns) parsedDataDNA.columns = [];
             if (!parsedDataDNA.baselines) parsedDataDNA.baselines = {};
           }
-          
+
           // Update the data with normalized data_dna
           const normalizedData = { ...data, data_dna: parsedDataDNA };
-          
+
           console.log("📊 [WorkspaceRightSidebar] Data DNA exists:", normalizedData.data_dna ? "Yes" : "No");
           if (normalizedData.data_dna) {
             console.log("📊 [WorkspaceRightSidebar] Rows:", normalizedData.data_dna.rowCount || normalizedData.data_dna.row_count || 0);
@@ -116,7 +116,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
           console.log("🔍 [WorkspaceRightSidebar] SQL code exists:", normalizedData.current_sql_code ? "Yes" : "No");
           console.log("🐍 [WorkspaceRightSidebar] Python code exists:", normalizedData.current_python_code ? "Yes" : "No");
           console.log("🧠 [WorkspaceRightSidebar] Context exists:", normalizedData.context_analysis ? "Yes" : "No");
-          
+
           setSidebarData(normalizedData);
         } else {
           setSidebarData(null);
@@ -180,7 +180,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
 
     // Don't show "No data available" for the whole sidebar
     // Each panel will handle its own empty state
-    
+
     switch (activeOption) {
       case "dataDNA":
         if (!sidebarData || !sidebarData.data_dna) {
@@ -192,14 +192,14 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
           );
         }
         return <DataDNAPanel dataDNA={sidebarData.data_dna} />;
-      
+
       case "sql":
         return (
           <div className="panel-container">
             <h3 className="panel-title" style={{ color: "var(--info)" }}>
               SQL Executions ({sidebarData?.sql_code_history?.length || 0})
             </h3>
-            
+
             {sidebarData?.sql_code_history && sidebarData.sql_code_history.length > 0 ? (
               <div className="execution-log">
                 {sidebarData.sql_code_history.slice().reverse().map((entry, idx) => (
@@ -215,12 +215,12 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         <span className="status-badge error">✗ Error</span>
                       ) : null}
                     </div>
-                    
+
                     {/* Description */}
                     {entry.description && (
                       <p className="execution-description">{entry.description}</p>
                     )}
-                    
+
                     {/* Metrics */}
                     {(entry.row_count !== undefined || entry.execution_time_ms !== undefined) && (
                       <div className="execution-metrics">
@@ -232,7 +232,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         )}
                       </div>
                     )}
-                    
+
                     {/* Code (collapsible) */}
                     <details className="code-details">
                       <summary>View SQL</summary>
@@ -240,7 +240,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         <code>{entry.code}</code>
                       </pre>
                     </details>
-                    
+
                     {/* Result Preview */}
                     {entry.result && Array.isArray(entry.result) && entry.result.length > 0 && (
                       <details className="result-details">
@@ -251,7 +251,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         </pre>
                       </details>
                     )}
-                    
+
                     {/* Error Message */}
                     {entry.error_message && (
                       <div className="error-message">
@@ -266,14 +266,14 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
             )}
           </div>
         );
-      
+
       case "python":
         return (
           <div className="panel-container">
             <h3 className="panel-title" style={{ color: "var(--success)" }}>
               Python Executions ({sidebarData?.python_code_history?.length || 0})
             </h3>
-            
+
             {sidebarData?.python_code_history && sidebarData.python_code_history.length > 0 ? (
               <div className="execution-log">
                 {sidebarData.python_code_history.slice().reverse().map((entry, idx) => (
@@ -289,12 +289,12 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         <span className="status-badge error">✗ Error</span>
                       ) : null}
                     </div>
-                    
+
                     {/* Description */}
                     {entry.description && (
                       <p className="execution-description">{entry.description}</p>
                     )}
-                    
+
                     {/* Metrics */}
                     {(entry.row_count !== undefined || entry.execution_time_ms !== undefined) && (
                       <div className="execution-metrics">
@@ -306,7 +306,7 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         )}
                       </div>
                     )}
-                    
+
                     {/* Code (collapsible) */}
                     <details className="code-details">
                       <summary>View Python Code</summary>
@@ -314,19 +314,19 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
                         <code>{entry.code}</code>
                       </pre>
                     </details>
-                    
+
                     {/* Result Preview */}
                     {entry.result && (
                       <details className="result-details">
                         <summary>View Output</summary>
                         <pre className="result-block">
-                          {typeof entry.result === 'string' 
-                            ? entry.result 
+                          {typeof entry.result === 'string'
+                            ? entry.result
                             : JSON.stringify(entry.result, null, 2)}
                         </pre>
                       </details>
                     )}
-                    
+
                     {/* Error Message */}
                     {entry.error_message && (
                       <div className="error-message">
@@ -341,16 +341,16 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
             )}
           </div>
         );
-      
+
       case "context":
         return (
-          <ContextPanel 
-            contextData={sidebarData?.context_analysis || null} 
+          <ContextPanel
+            contextData={sidebarData?.context_analysis || null}
             sessionId={sessionId}
             onRefresh={refreshSidebarData}
           />
         );
-      
+
       default:
         return null;
     }
@@ -418,18 +418,23 @@ export default function WorkspaceRightSidebar({ sessionId }: WorkspaceRightSideb
         }
 
         .rail-btn {
-          width: 44px;
-          height: 44px;
+          width: 40px;
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 0.75rem;
+          border-radius: 10px;
           color: var(--text-muted);
           background: transparent;
           border: none;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: background 0.2s, color 0.2s, transform 0.2s;
           position: relative;
+          outline: none;
+        }
+
+        .rail-btn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
         }
 
         .rail-btn:hover {

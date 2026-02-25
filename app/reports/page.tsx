@@ -224,24 +224,31 @@ export default function ReportsPage() {
         .reports-share-btn {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.625rem 1.25rem;
+          gap: 16px;
+          height: 44px;
+          padding: 0 20px;
           background: var(--fg);
           color: var(--bg);
-          border: none;
-          border-radius: 2rem;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+          border: 1px solid var(--fg);
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: transform 0.2s, opacity 0.2s, background 0.2s;
           white-space: nowrap;
+          outline: none;
+        }
+
+        .reports-share-btn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
         }
 
         .reports-share-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          opacity: 0.9;
+        }
+        
+        .reports-share-btn:active {
+          transform: scale(0.98);
         }
 
         .reports-page-wrapper {
@@ -300,21 +307,28 @@ export default function ReportsPage() {
         .load-more-btn {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.5rem;
-          background: var(--bg-surface);
+          justify-content: center;
+          gap: 16px;
+          height: 44px;
+          padding: 0 20px;
+          background: transparent;
           border: 1px solid var(--stroke);
-          border-radius: 2rem;
-          font-size: 0.875rem;
+          border-radius: 10px;
+          font-size: 14px;
           font-weight: 500;
           color: var(--fg);
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s, border-color 0.2s;
+          outline: none;
+        }
+
+        .load-more-btn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
         }
 
         .load-more-btn:hover {
-          background: var(--bg-elevated);
-          transform: translateY(-1px);
+          background: var(--loader-bg);
+          border-color: var(--fg);
         }
       `}</style>
     </div>

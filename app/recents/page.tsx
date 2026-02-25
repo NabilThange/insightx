@@ -345,20 +345,31 @@ function Styles() {
       .cta-button {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-        padding: 0.75rem 1.5rem;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 12px;
+        height: 44px;
+        padding: 0 20px;
         background: var(--fg);
         color: var(--bg);
-        border: none;
-        border-radius: 0.5rem;
-        font-size: 0.9rem;
-        font-weight: 600;
+        border: 1px solid var(--fg);
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
-        transition: opacity 0.2s;
+        transition: background 0.2s, opacity 0.2s, transform 0.2s;
+        outline: none;
       }
 
-      .cta-button:hover { opacity: 0.85; }
+      .cta-button:focus-visible {
+        box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
+      }
+
+      .cta-button:hover { opacity: 0.9; }
+
+      .cta-button:active {
+        transform: scale(0.98);
+      }
 
       /* Grid */
       .sessions-grid {
@@ -455,19 +466,27 @@ function Styles() {
       .expand-btn {
         display: flex;
         align-items: center;
-        gap: 0.3rem;
-        padding: 0.3rem 0.625rem;
+        justify-content: center;
+        gap: 12px;
+        height: 44px;
+        padding: 0 16px;
         border: 1px solid var(--stroke);
-        border-radius: 1rem;
+        border-radius: 10px;
         background: transparent;
-        font-size: 0.75rem;
+        font-size: 14px;
+        font-weight: 500;
         color: var(--text-muted);
         cursor: pointer;
-        transition: all 0.15s;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        outline: none;
+      }
+
+      .expand-btn:focus-visible {
+        box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
       }
 
       .expand-btn:hover {
-        background: var(--bg);
+        background: var(--loader-bg);
         color: var(--fg);
         border-color: var(--fg);
       }

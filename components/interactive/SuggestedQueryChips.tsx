@@ -32,27 +32,36 @@ export default function SuggestedQueryChips({
 
       <style jsx>{`
         .suggested-queries {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.75rem;
-          justify-content: center;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          align-items: stretch;
+          width: 100%;
           max-width: 800px;
         }
 
         .query-chip {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
+          justify-content: flex-start;
+          gap: 12px;
+          height: 44px;
+          padding: 0 16px;
           background-color: var(--loader-bg);
           border: 1px solid var(--stroke);
-          border-radius: 9999px;
+          border-radius: 10px;
           color: var(--fg);
           font-family: inherit;
-          font-size: 0.875rem;
+          font-size: 14px;
           font-weight: 500;
           cursor: pointer;
-          transition: all var(--transition-fast) ease;
+          transition: background-color 0.2s, border-color 0.2s;
+          text-align: left;
+          outline: none;
+        }
+
+        .query-chip:focus-visible {
+          box-shadow: 0 0 0 3px rgba(31,31,31,0.5);
         }
 
         .query-chip:hover {
@@ -62,6 +71,7 @@ export default function SuggestedQueryChips({
 
         .query-chip :global(svg) {
           color: var(--warning);
+          flex-shrink: 0;
         }
 
         @media (max-width: 1000px) {
@@ -70,8 +80,8 @@ export default function SuggestedQueryChips({
           }
 
           .query-chip {
-            font-size: 0.8125rem;
-            padding: 0.625rem 1rem;
+            font-size: 14px;
+            padding: 0 16px;
           }
         }
       `}</style>

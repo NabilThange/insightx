@@ -74,12 +74,20 @@ export default function GlobalHeader() {
           font-size: 1rem;
           font-weight: 500;
           opacity: 0.6;
-          transition: opacity 0.3s ease;
+          transition: opacity 0.2s ease, background 0.2s ease;
+          padding: 0.5rem 1rem;
+          border-radius: 9999px;
+          display: flex;
+          align-items: center;
         }
 
         .links :global(a:hover),
         .links :global(a.active) {
           opacity: 1;
+        }
+        
+        .links :global(a:hover) {
+          background: var(--loader-bg);
         }
 
         .links p {
@@ -90,23 +98,24 @@ export default function GlobalHeader() {
         }
 
         .login-btn {
-          padding: 0.75rem 1.5rem;
-          border: 1px solid var(--fg);
-          border-radius: 2rem;
-          font-size: 0.875rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05rem;
-          transition: all 0.3s ease;
-          display: inline-block;
-          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 44px;
+          padding: 0 20px;
+          border: 1px solid var(--stroke);
+          border-radius: 10px;
+          font-size: 14px;
+          transition: all 0.2s ease;
           color: var(--fg);
           text-decoration: none;
           font-weight: 500;
+          background: transparent;
         }
 
         .login-btn:hover {
-          background-color: var(--fg);
-          color: var(--bg);
+          background-color: var(--loader-bg);
+          border-color: var(--fg);
         }
 
         .divider {
