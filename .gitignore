@@ -49,6 +49,7 @@ next-env.d.ts
 *.md
 !README.md
 !DESIGN_SYSTEM.md
+!INSIGHTX_TECHNICAL_DOCUMENTATION.md
 # kiro and agents
 .kiro/
 .agents/
