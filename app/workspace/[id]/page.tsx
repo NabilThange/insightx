@@ -249,20 +249,6 @@ export default function ActiveWorkspacePage({
               showToast.agent(event.message, event.data?.reasoning);
             } else if (event.type === "orchestrator_result") {
               logger.orchestrator("Intent Classified", event.data.classification);
-            } else if (event.type === "code_written") {
-              const { code, language } = event.data;
-              try {
-                if (language === 'sql') {
-                  await WorkspaceSidebarService.updateSQLCode(sessionData.id, code, true);
-                } else if (language === 'python') {
-                  await WorkspaceSidebarService.updatePythonCode(sessionData.id, code, true);
-                }
-                logger.tool(`${language.toUpperCase()} Code Saved`, { length: code.length });
-                showToast.agent(`📝 ${language.toUpperCase()} code saved to sidebar`, `${code.length} characters`);
-              } catch (error) {
-                console.error(`Failed to save ${language} code:`, error);
-                showToast.agent(`⚠️ Failed to save ${language} code`, 'Code will not persist');
-              }
             } else if (event.type === "sql_result") {
               logger.tool("SQL Analysis Executed", { query: event.data.query });
               showToast.agent("✅ SQL Query executed successfully", `${event.data.results?.rows?.length || 0} rows returned`);

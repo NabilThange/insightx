@@ -283,7 +283,10 @@ export class ToolExecutor {
     
     try {
       console.log('[ToolExecutor] 🔍 Executing SQL query...');
-      console.log(`[ToolExecutor] 📝 Query: ${args.sql.substring(0, 150)}${args.sql.length > 150 ? '...' : ''}`);
+      console.log(`[ToolExecutor] 📝 Full SQL received: ${args.sql}`);
+      console.log(`[ToolExecutor] 📝 SQL type: ${typeof args.sql}`);
+      console.log(`[ToolExecutor] 📝 SQL length: ${args.sql.length} characters`);
+      console.log(`[ToolExecutor] 📝 Query preview: ${args.sql.substring(0, 150)}${args.sql.length > 150 ? '...' : ''}`);
       
       const response = await fetch(`${BACKEND_URL}/api/sql/execute`, {
         method: 'POST',
@@ -355,7 +358,10 @@ export class ToolExecutor {
     
     try {
       console.log('[ToolExecutor] 📊 Executing Python code...');
-      console.log(`[ToolExecutor] 📝 Code: ${args.code.substring(0, 150)}${args.code.length > 150 ? '...' : ''}`);
+      console.log(`[ToolExecutor] 📝 Full Python code received: ${args.code}`);
+      console.log(`[ToolExecutor] 📝 Code type: ${typeof args.code}`);
+      console.log(`[ToolExecutor] 📝 Code length: ${args.code.length} characters`);
+      console.log(`[ToolExecutor] 📝 Code preview: ${args.code.substring(0, 150)}${args.code.length > 150 ? '...' : ''}`);
       
       const response = await fetch(`${BACKEND_URL}/api/python/execute`, {
         method: 'POST',
@@ -419,22 +425,49 @@ export class ToolExecutor {
   }
 
   /**
-   * Write code to sidebar
+   * Write code to sidebar - ACTUALLY SAVES TO DATABASE
    */
   private async writeCode(args: { code: string; language: string; description?: string }): Promise<any> {
     try {
       console.log(`[ToolExecutor] 📝 Writing ${args.language.toUpperCase()} code to sidebar`);
       console.log(`[ToolExecutor] 📄 Code length: ${args.code.length} characters`);
+      console.log(`[ToolExecutor] 📄 First 100 chars: ${args.code.substring(0, 100)}`);
       
-      // Call the callback to push code to UI
+      // Actually save to database
+      if (args.language === 'sql') {
+        await WorkspaceSidebarService.updateSQLCode(
+          this.sessionId,
+          args.code,
+          false,  // Don't add to history yet - execution will do that
+          { 
+            description: args.description || 'SQL query generated',
+            message_id: this.currentMessageId,
+            status: 'success'  // Mark as generated (will be updated on execution)
+          }
+        );
+        console.log(`[ToolExecutor] ✅ SQL code saved to workspace_sidebar.current_sql_code`);
+      } else if (args.language === 'python') {
+        await WorkspaceSidebarService.updatePythonCode(
+          this.sessionId,
+          args.code,
+          false,  // Don't add to history yet - execution will do that
+          { 
+            description: args.description || 'Python code generated',
+            message_id: this.currentMessageId,
+            status: 'success'  // Mark as generated (will be updated on execution)
+          }
+        );
+        console.log(`[ToolExecutor] ✅ Python code saved to workspace_sidebar.current_python_code`);
+      }
+
+      // Also call the callback for real-time UI updates
       if (this.codeWriteCallback) {
         this.codeWriteCallback(args.code, args.language, args.description);
-        console.log(`[ToolExecutor] ✅ ${args.language.toUpperCase()} code pushed to sidebar`);
       }
 
       return {
         success: true,
-        message: `${args.language.toUpperCase()} code written to sidebar`,
+        message: `${args.language.toUpperCase()} code written to sidebar and saved to database`,
       };
     } catch (error) {
       console.error('[ToolExecutor] ❌ Failed to write code:', error);
