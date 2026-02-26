@@ -191,8 +191,8 @@ MIT License - see LICENSE file for details
 
 **Team Members:**
 - **Nabil Salim Thange** - [GitHub](https://github.com/NabilThange) | [Portfolio](https://nabil-thange.vercel.app/)
-- **Tanish Soniya**
-- **Jith Rao**
+- **Tanish Soni**
+- **Yojith Rao**
 
 Built for IIT-B Hackathon
 
