@@ -238,14 +238,8 @@ export default function ChatPanel({
         }
 
         .chat-input-fixed {
-          padding: 1.25rem 2rem 1.75rem;
-          background: var(--loader-bg, #e0e0d8);
-          border-top: 1px solid var(--stroke);
-          background-image: linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0.04) 0%,
-            transparent 100%
-          );
+          padding: 0.25rem;
+          background: transparent;
         }
 
         .input-container-outer { 

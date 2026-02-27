@@ -577,10 +577,29 @@ export function PromptInputSubmit({
 }: PromptInputSubmitProps) {
     const submitCtx = useContext(SubmitContext);
     const attachCtx = useContext(AttachmentsContext);
+    const [hasContent, setHasContent] = useState(false);
+
+    // Monitor textarea content changes
+    useEffect(() => {
+        const textarea = document.querySelector<HTMLTextAreaElement>(
+            "[data-slot='prompt-input-textarea']"
+        );
+        if (!textarea) return;
+
+        const updateContent = () => {
+            const text = textarea.value.trim();
+            const files = attachCtx?.files ?? [];
+            setHasContent(!!text || files.length > 0);
+        };
+
+        updateContent();
+        textarea.addEventListener("input", updateContent);
+        return () => textarea.removeEventListener("input", updateContent);
+    }, [attachCtx?.files]);
 
     const isStreaming = status === "streaming" || status === "submitted";
     const isLoading = status === "submitted";
-    const isDisabled = disabled || (!isStreaming && status === "idle");
+    const isDisabled = disabled || (!isStreaming && !hasContent);
 
     const handleClick = () => {
         if (isStreaming) {
@@ -604,7 +623,7 @@ export function PromptInputSubmit({
         <button
             data-slot="prompt-input-submit"
             type="button"
-            disabled={!isStreaming && !!disabled}
+            disabled={isDisabled}
             onClick={handleClick}
             style={{
                 display: "inline-flex",
