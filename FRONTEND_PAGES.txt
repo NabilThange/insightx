@@ -1,0 +1,40 @@
+# InsightX Frontend Pages Overview
+
+This document outlines the purpose and visual interface of each primary page in the InsightX application. All descriptions are strictly limited to frontend UI elements, layouts, and user interactions.
+
+## 1. Landing Page (`/`)
+- **Purpose**: The gateway to the application.
+- **UI Components**: Contains a large hero section, value propositions, and primary call-to-action buttons directing users to start their journey or log in. It avoids the persistent navigation bar for a cleaner entry experience.
+
+## 2. Login Page (`/login`)
+- **Purpose**: User authentication interface.
+- **UI Components**: Clean, centered form layout with input fields for user credentials and buttons for submitting or switching auth modes. Contains minimal distractions.
+
+## 3. Connect Page (`/connect`)
+- **Purpose**: The bridge for users to bring in their data.
+- **UI Components**: A visually elevated card interface offering three segmented tabs: Upload CSV (drag-and-drop zone), Database Connection (input form), and Sample Data. Features sleek scanning animations and a Data DNA preview step once data is mocked or uploaded.
+
+## 4. Workspace Index (`/workspace`)
+- **Purpose**: The loading and routing entry point for active analysis.
+- **UI Components**: Displays a centered, pulsing "Initializing Workspace..." loading state before transitioning the user to their specific session interface.
+
+## 5. Active Workspace (`/workspace/[id]`)
+- **Purpose**: The core interactive data analysis environment.
+- **UI Components**: A complex, multi-panel layout.
+  - **Left/Center**: A conversational `ChatPanel` displaying user queries, streaming AI responses, and quick action chips. Includes a sticky chat input at the bottom.
+  - **Right Sidebar**: An expandable side-rail featuring icons for Data DNA, SQL Executions, Python Executions, and Context. Opens into detailed panels showing data profile stats and execution logs.
+
+## 6. Reports Page (`/reports`)
+- **Purpose**: A visual dashboard for critical insights and trends.
+- **UI Components**: Features a `ReportsHero`, a filter bar, and a grid of `InsightCards`. Each card visualizes metrics using Recharts (line or bar graphs), displaying trends (up/down signals) alongside categorical tags and a "Share Room" button.
+
+## 7. Recents Page (`/recents`)
+- **Purpose**: Historical log of past data sessions and chats.
+- **UI Components**: A centralized list view of "Session Cards." Each card displays the dataset name, status, row count, and relative time. Cards can be expanded via a smooth chevron animation to reveal a nested, clickable list of chat histories for that specific dataset.
+
+## 8. Contact Page (`/contact`)
+- **Purpose**: A simple information page.
+- **UI Components**: Contains basic typography (heading and subtitle) to provide users with contact details or a way to get in touch with the team. 
+
+---
+*Note: The `GlobalHeader` persists across most internal pages (except Landing, Login, and Workspace), providing consistent navigation pills and seamless page routing.*
