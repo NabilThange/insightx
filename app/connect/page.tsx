@@ -36,6 +36,7 @@ export default function ConnectPage() {
   const [activeSource, setActiveSource] = useState<DataSource>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [generatedDNA, setGeneratedDNA] = useState<DataDNA | null>(null);
+  const [explorerData, setExplorerData] = useState<any>(null);
   const [countdown, setCountdown] = useState(3);
   const [dragActive, setDragActive] = useState(false);
 
@@ -91,6 +92,12 @@ export default function ConnectPage() {
       const dna = formatSessionToDataDNA(session);
       setGeneratedDNA(dna);
       setDataDNA(dna);
+      
+      // Store explorer data for the animation
+      if (session.data_dna) {
+        setExplorerData(session.data_dna);
+      }
+      
       setScanStatus("complete");
 
     } catch (error) {
@@ -306,6 +313,7 @@ export default function ConnectPage() {
                     rowCount={generatedDNA?.rowCount || 0}
                     columns={generatedDNA?.columns || []}
                     patterns={generatedDNA?.patterns || []}
+                    explorerData={explorerData}
                     onComplete={handleScanComplete}
                   />
                 ) : (
@@ -342,8 +350,7 @@ export default function ConnectPage() {
       <style jsx>{`
         /* ─── Page wrapper ────────────────────────────────────────── */
         .connect-page-wrapper {
-          height: calc(100vh - 5rem);
-          overflow: hidden;
+          min-height: calc(100vh - 5rem);
           background-color: var(--bg);
           display: flex;
           align-items: center;
@@ -359,12 +366,13 @@ export default function ConnectPage() {
           background: var(--bg-elevated);
           border: 1px solid var(--stroke);
           border-radius: 1.5rem;
-          overflow: hidden;
+          overflow: visible;
           min-height: 0;
-          max-height: calc(100vh - 7rem);
+          max-height: none;
           display: flex;
           flex-direction: column;
           position: relative;
+          margin: 2rem 0;
         }
 
         /* ─── Main content ────────────────────────────────────────── */
@@ -376,7 +384,7 @@ export default function ConnectPage() {
           justify-content: center;
           padding: 2rem 3rem;
           position: relative;
-          overflow: hidden;
+          overflow: visible;
         }
 
         /* ─── Hero ────────────────────────────────────────────────── */
