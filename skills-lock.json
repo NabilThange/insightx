@@ -26,10 +26,20 @@
       "sourceType": "github",
       "computedHash": "057ca87855e723550a666d1afda4b42b90aeb972372e5877029b3ce1a8f8e488"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    },
     "markdown-documentation": {
       "source": "aj-geddes/useful-ai-prompts",
       "sourceType": "github",
       "computedHash": "368b304d2fcdda2b4ff427f360cbcbc91e1edd31e1ca9d4212406cd7ce9cd9d0"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "computedHash": "4cfe5e95a230616c17d92b44e3cd37bae543ce087a7756a446a62f77d7c58a37"
     }
   }
 }

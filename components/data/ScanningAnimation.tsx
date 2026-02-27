@@ -24,6 +24,19 @@ interface ScanningAnimationProps {
 
 type VisualStage = "idle" | "profiling" | "detecting" | "ready";
 
+// Animation constants following design system
+const ANIMATION_DURATIONS = {
+  micro: 0.3,
+  standard: 1,
+  complex: 2,
+  stagger: 0.1,
+};
+
+const EASING = {
+  smooth: [0.23, 1, 0.32, 1] as const, // power3.inOut equivalent
+  reveal: [0.16, 1, 0.3, 1] as const,  // power4.out equivalent
+};
+
 export default function ScanningAnimation({
   status,
   uploadProgress,
@@ -102,33 +115,44 @@ export default function ScanningAnimation({
   }, [visualStage, onComplete]);
 
   return (
-    <div className="scanning-wrapper" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="scanning-wrapper">
       <AnimatePresence mode="wait">
         {/* Stage 1: Uploading */}
         {status === "uploading" && (
           <motion.div
             key="uploading"
             className="stage-content"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: ANIMATION_DURATIONS.micro, ease: EASING.reveal }}
           >
-            <HardDriveUpload size={64} className="pulse-icon" />
-            <h3>Uploading Data...</h3>
-            <p className="filename">{filename}</p>
+            <motion.div
+              className="icon-container"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: ANIMATION_DURATIONS.standard, ease: EASING.smooth }}
+            >
+              <HardDriveUpload size={56} className="pulse-icon" strokeWidth={1.5} />
+            </motion.div>
+            
+            <div className="text-content">
+              <h3 className="stage-title">Uploading Data</h3>
+              <p className="filename">{filename}</p>
+            </div>
+
             <div className="progress-container">
               <div className="progress-bar">
                 <motion.div
                   className="progress-fill"
                   initial={{ width: "0%" }}
                   animate={{ width: `${uploadProgress}%` }}
-                  transition={{ duration: 0.1 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
                 />
               </div>
               <div className="progress-stats">
-                <span>{uploadProgress}%</span>
-                <span>Compressing & Encrypting...</span>
+                <span className="progress-percent">{uploadProgress}%</span>
+                <span className="progress-label">Securing your data</span>
               </div>
             </div>
           </motion.div>
@@ -139,33 +163,42 @@ export default function ScanningAnimation({
           <motion.div
             key="processing"
             className="stage-content"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: ANIMATION_DURATIONS.micro, ease: EASING.reveal }}
           >
-            <ServerCog size={64} className="spinner" />
-            <h3>Analyzing Structure...</h3>
-            <p className="stage-subtitle">AI Agents are scanning for schema & patterns</p>
+            <motion.div
+              className="icon-container"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <ServerCog size={56} strokeWidth={1.5} />
+            </motion.div>
+            
+            <div className="text-content">
+              <h3 className="stage-title">Analyzing Structure</h3>
+              <p className="stage-subtitle">AI agents scanning for patterns</p>
+            </div>
 
             <div className="processing-steps">
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-                className="step-item"
+                transition={{ delay: 0.3, duration: ANIMATION_DURATIONS.micro }}
+                className="step-item step-complete"
               >
-                <CheckCircle2 size={16} className="text-green-500" />
-                <span>Upload Complete</span>
+                <CheckCircle2 size={18} strokeWidth={2} />
+                <span>Upload complete</span>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.5 }}
-                className="step-item active"
+                transition={{ delay: 0.6, duration: ANIMATION_DURATIONS.micro }}
+                className="step-item step-active"
               >
-                <Loader2 size={14} className="animate-spin" />
-                <span>Generating Data DNA...</span>
+                <Loader2 size={16} className="animate-spin" strokeWidth={2} />
+                <span>Generating Data DNA</span>
               </motion.div>
             </div>
           </motion.div>
@@ -176,19 +209,39 @@ export default function ScanningAnimation({
           <motion.div
             key="profiling"
             className="stage-content"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: ANIMATION_DURATIONS.micro, ease: EASING.reveal }}
           >
-            <Loader2 size={48} className="spinner" />
-            <h3>Profiling {rowCount?.toLocaleString() || "..."} rows...</h3>
-            <p className="stage-subtitle">Analyzing column types and distributions</p>
+            <motion.div
+              className="icon-container"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Loader2 size={48} strokeWidth={1.5} />
+            </motion.div>
+            
+            <div className="text-content">
+              <h3 className="stage-title">Profiling {rowCount?.toLocaleString() || "..."} rows</h3>
+              <p className="stage-subtitle">Analyzing column types and distributions</p>
+            </div>
 
             <div className="columns-container" ref={columnsContainerRef}>
               <div className="columns-grid">
                 {columns.slice(0, visibleColumns).map((col, index) => (
-                  <ColumnCard key={col.name} {...col} index={index} />
+                  <motion.div
+                    key={col.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ 
+                      delay: index * ANIMATION_DURATIONS.stagger,
+                      duration: ANIMATION_DURATIONS.micro,
+                      ease: EASING.smooth
+                    }}
+                  >
+                    <ColumnCard {...col} index={index} />
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -200,25 +253,42 @@ export default function ScanningAnimation({
           <motion.div
             key="detecting"
             className="stage-content"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: ANIMATION_DURATIONS.micro, ease: EASING.reveal }}
           >
-            <Sparkles size={48} className="sparkle-icon" />
-            <h3>Detecting patterns...</h3>
-            <p className="stage-subtitle">Identifying insights and anomalies</p>
+            <motion.div
+              className="icon-container"
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [1, 0.8, 1]
+              }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Sparkles size={48} strokeWidth={1.5} />
+            </motion.div>
+            
+            <div className="text-content">
+              <h3 className="stage-title">Detecting patterns</h3>
+              <p className="stage-subtitle">Identifying insights and anomalies</p>
+            </div>
 
             <div className="patterns-container">
               {patterns.slice(0, visiblePatterns).map((pattern, index) => (
                 <motion.div
                   key={pattern}
                   className="pattern-tag"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ 
+                    delay: index * 0.15,
+                    duration: ANIMATION_DURATIONS.micro,
+                    ease: EASING.smooth
+                  }}
                 >
-                  {pattern}
+                  <CheckCircle2 size={14} strokeWidth={2} />
+                  <span>{pattern}</span>
                 </motion.div>
               ))}
             </div>
@@ -230,153 +300,210 @@ export default function ScanningAnimation({
           <motion.div
             key="ready"
             className="stage-content"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.4, ease: EASING.smooth }}
           >
             <motion.div
+              className="icon-container success"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 15 }}
+              transition={{ 
+                delay: 0.2,
+                type: "spring",
+                stiffness: 200,
+                damping: 15
+              }}
             >
-              <CheckCircle2 size={64} className="success-icon" />
+              <CheckCircle2 size={64} strokeWidth={1.5} />
             </motion.div>
-            <h3>Data DNA Generated Successfully</h3>
+            
+            <div className="text-content">
+              <h3 className="stage-title">Data DNA Generated</h3>
+              <p className="stage-subtitle">Ready to explore your insights</p>
+            </div>
 
-            <div className="trust-indicators">
+            <motion.div 
+              className="trust-indicators"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: ANIMATION_DURATIONS.micro }}
+            >
               <div className="trust-item">
-                <CheckCircle2 size={16} className="trust-icon" />
+                <CheckCircle2 size={16} strokeWidth={2} />
                 <span>File validation passed</span>
               </div>
               <div className="trust-item">
-                <CheckCircle2 size={16} className="trust-icon" />
-                <span>Schema detected ({columns.length} cols)</span>
+                <CheckCircle2 size={16} strokeWidth={2} />
+                <span>Schema detected ({columns.length} columns)</span>
               </div>
               <div className="trust-item">
-                <CheckCircle2 size={16} className="trust-icon" />
+                <CheckCircle2 size={16} strokeWidth={2} />
                 <span>{patterns.length} patterns identified</span>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <style jsx>{`
-        /* No internal container styling - inherits from parent */
-        
+        /* Container - Full responsive layout */
+        .scanning-wrapper {
+          width: 100%;
+          height: 100%;
+          min-height: 400px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+          font-family: 'PP Neue Montreal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Stage content - Centered with generous whitespace */
         .stage-content {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 1.5rem;
           width: 100%;
-          max-width: 900px;
+          max-width: 56rem;
+          text-align: center;
         }
 
-        :global(.spinner) {
-          color: var(--accent-blue);
-          animation: spin 1s linear infinite;
-        }
-
-        :global(.sparkle-icon) {
-          color: var(--accent-amber);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        :global(.pulse-icon) {
+        /* Icon container - Consistent sizing */
+        .icon-container {
+          width: 5rem;
+          height: 5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           color: var(--fg);
-          animation: pulse 2s ease-in-out infinite;
+          flex-shrink: 0;
         }
 
-        :global(.success-icon) {
-          color: var(--accent-green);
+        .icon-container.success {
+          color: var(--success, #2d5016);
         }
 
-        h3 {
+        /* Text content - Hierarchical typography */
+        .text-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          max-width: 32rem;
+        }
+
+        .stage-title {
           font-size: 1.75rem;
-          font-weight: 600;
-          color: var(--text-primary);
+          font-weight: 500;
+          color: var(--fg);
+          letter-spacing: -0.02rem;
+          line-height: 1.2;
+          margin: 0;
+        }
+
+        .stage-subtitle {
+          font-size: 1rem;
+          font-weight: 400;
+          color: var(--fg);
+          opacity: 0.6;
+          line-height: 1.5;
           margin: 0;
         }
 
         .filename {
-          font-family: "Geist Mono", "JetBrains Mono", monospace;
-          color: var(--text-muted);
+          font-family: 'Geist Mono', 'JetBrains Mono', monospace;
           font-size: 0.875rem;
+          color: var(--fg);
+          opacity: 0.5;
+          margin: 0;
         }
 
-        .stage-subtitle {
-          color: var(--text-muted);
-          font-size: 1rem;
-          margin-top: -0.75rem;
-        }
-
-        .processing-steps {
-           display: flex;
-           flex-direction: column;
-           gap: 0.5rem;
-           margin-top: 1rem;
-           align-items: flex-start;
-           min-width: 200px;
-        }
-
-        .step-item {
-           display: flex;
-           align-items: center;
-           gap: 0.5rem;
-           font-size: 0.9rem;
-           color: var(--text-muted);
-        }
-        
-        .step-item.active {
-           color: var(--fg);
-           font-weight: 500;
-        }
-
+        /* Progress bar - Clean and minimal */
         .progress-container {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+          width: 100%;
+          max-width: 24rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
         }
-        
+
         .progress-bar {
           width: 100%;
-          height: 6px;
-          background-color: var(--stroke);
-          border-radius: 999px;
+          height: 0.375rem;
+          background-color: var(--loader-bg, #e0e0d8);
+          border-radius: 9999px;
           overflow: hidden;
         }
 
         .progress-fill {
           height: 100%;
           background: var(--fg);
-          border-radius: 999px;
+          border-radius: 9999px;
+          transition: width 0.15s ease-out;
         }
 
         .progress-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-family: "Geist Mono", monospace;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.875rem;
+          font-family: 'Geist Mono', monospace;
         }
 
+        .progress-percent {
+          color: var(--fg);
+          font-weight: 500;
+        }
+
+        .progress-label {
+          color: var(--fg);
+          opacity: 0.5;
+        }
+
+        /* Processing steps - Clear hierarchy */
+        .processing-steps {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: flex-start;
+          min-width: 16rem;
+        }
+
+        .step-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-size: 0.9375rem;
+          color: var(--fg);
+          opacity: 0.5;
+          transition: opacity 0.3s;
+        }
+
+        .step-item.step-complete {
+          opacity: 0.7;
+          color: var(--success, #2d5016);
+        }
+
+        .step-item.step-active {
+          opacity: 1;
+          font-weight: 500;
+        }
+
+        /* Columns container - Scrollable grid */
         .columns-container {
           width: 100%;
-          max-height: 280px;
+          max-height: 20rem;
           overflow-y: auto;
-          margin-top: 1rem;
-          padding: 0.25rem;
+          padding: 0.5rem;
           scroll-behavior: smooth;
           scrollbar-width: thin;
-          scrollbar-color: var(--stroke) transparent;
+          scrollbar-color: var(--stroke, rgba(0,0,0,0.2)) transparent;
         }
 
         .columns-container::-webkit-scrollbar {
-          width: 6px;
+          width: 0.375rem;
         }
 
         .columns-container::-webkit-scrollbar-track {
@@ -384,42 +511,93 @@ export default function ScanningAnimation({
         }
 
         .columns-container::-webkit-scrollbar-thumb {
-          background-color: var(--stroke);
-          border-radius: 3px;
+          background-color: var(--stroke, rgba(0,0,0,0.2));
+          border-radius: 9999px;
         }
 
         .columns-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
           gap: 1rem;
           width: 100%;
         }
 
+        /* Patterns container - Flexible wrap */
         .patterns-container {
           display: flex;
           flex-wrap: wrap;
           gap: 0.75rem;
           justify-content: center;
-          margin-top: 1rem;
+          max-width: 40rem;
         }
 
         .pattern-tag {
-          padding: 0.5rem 1rem;
-          background-color: var(--bg-surface);
-          border: 1px solid var(--border);
-          border-radius: 9999px;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--text-primary);
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          padding: 0.625rem 1rem;
+          background-color: var(--bg, #f1efe7);
+          border: 1px solid var(--stroke, rgba(0,0,0,0.2));
+          border-radius: 9999px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: var(--fg);
+          transition: transform 0.2s;
         }
 
-        .pattern-tag::before {
-          content: "✓";
-          color: var(--accent-green);
-          font-weight: 700;
+        .pattern-tag:hover {
+          transform: translateY(-2px);
+        }
+
+        .pattern-tag :global(svg) {
+          color: var(--success, #2d5016);
+          flex-shrink: 0;
+        }
+
+        /* Trust indicators - Professional validation */
+        .trust-indicators {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          background: var(--bg, #f1efe7);
+          padding: 1.5rem;
+          border-radius: 0.75rem;
+          border: 1px solid var(--stroke, rgba(0,0,0,0.2));
+          width: 100%;
+          max-width: 24rem;
+        }
+
+        .trust-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-size: 0.9375rem;
+          color: var(--fg);
+        }
+
+        .trust-item :global(svg) {
+          color: var(--success, #2d5016);
+          flex-shrink: 0;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+          }
+        }
+
+        :global(.pulse-icon) {
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        :global(.animate-spin) {
+          animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
@@ -431,41 +609,61 @@ export default function ScanningAnimation({
           }
         }
 
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-            transform: scale(1);
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .scanning-wrapper {
+            padding: 1rem;
           }
-          50% {
-            opacity: 0.7;
-            transform: scale(1.1);
+
+          .stage-title {
+            font-size: 1.5rem;
+          }
+
+          .stage-subtitle {
+            font-size: 0.9375rem;
+          }
+
+          .icon-container {
+            width: 4rem;
+            height: 4rem;
+          }
+
+          .icon-container :global(svg) {
+            width: 48px;
+            height: 48px;
+          }
+
+          .columns-grid {
+            grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+            gap: 0.75rem;
+          }
+
+          .progress-container {
+            max-width: 100%;
+          }
+
+          .trust-indicators {
+            max-width: 100%;
           }
         }
 
-        .trust-indicators {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-top: 1rem;
-            background: var(--bg-surface);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--stroke);
-            width: 100%;
-            max-width: 400px;
-        }
+        @media (max-width: 480px) {
+          .stage-title {
+            font-size: 1.25rem;
+          }
 
-        .trust-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 0.875rem;
-            color: var(--fg);
-        }
+          .columns-grid {
+            grid-template-columns: 1fr;
+          }
 
-        .trust-icon {
-            color: var(--accent-green);
+          .patterns-container {
+            gap: 0.5rem;
+          }
+
+          .pattern-tag {
+            font-size: 0.8125rem;
+            padding: 0.5rem 0.875rem;
+          }
         }
       `}</style>
     </div>
