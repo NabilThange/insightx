@@ -23,10 +23,14 @@ export const metadata: Metadata = {
   creator: "Nabil Thange",
   publisher: "InsightX",
   
-  // Favicon and icons
+  // Favicon and icons - using logo.png for better quality
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo.png", type: "image/svg+xml" },
+      { url: "/logo.png", type: "image/png", sizes: "192x192" },
+    ],
+    shortcut: "/favicon.ico",
     apple: "/logo.png",
   },
   
@@ -74,7 +78,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Favicon - explicit links to ensure proper display */}
+        <link rel="icon" type="image/svg+xml" href="/logo.png" />
+        <link rel="icon" type="image/png" href="/logo.png" sizes="192x192" />
+        <link rel="shortcut icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        
+        {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
+        
+        {/* Theme and mobile web app meta tags */}
         <meta name="theme-color" content="#000000" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
