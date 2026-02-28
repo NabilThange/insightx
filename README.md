@@ -1,6 +1,8 @@
 # InsightX
 **Conversational Analytics Platform for Data-Driven Insights**
 
+> 🚀 **[🌐 Check it out Live → https://insightxx.vercel.app/](https://insightxx.vercel.app/)**
+
 > 📖 **[Read the Full Technical Documentation](./INSIGHTX_TECHNICAL_DOCUMENTATION.md)** for comprehensive system architecture, API reference, and deployment guides.
 
 ---
@@ -334,11 +336,14 @@ npm run test
 
 ## 🚢 Deployment
 
+**Live Application:** 🌐 **[https://insightxx.vercel.app/](https://insightxx.vercel.app/)** — Check it out!
+
 **Frontend (Vercel):**
 ```bash
 npm run build
 # Deploy via Vercel dashboard or CLI
 ```
+> The frontend is deployed on Vercel. **[Check it out → https://insightxx.vercel.app/](https://insightxx.vercel.app/)**
 
 **Backend (Railway):**
 - Push to GitHub
@@ -382,6 +387,7 @@ Built for IIT-B Techfest Hackathon
 
 ## 🔗 Links
 
+- **🌐 Live App**: [https://insightxx.vercel.app/](https://insightxx.vercel.app/) — Check it out!
 - **Supabase Dashboard**: https://supabase.com/dashboard/project/xvtqbvavwbowyyoevolo
 - **API Documentation**: http://localhost:8000/docs (local)
 - **Technical Docs**: `INSIGHTX_TECHNICAL_DOCUMENTATION.md`
