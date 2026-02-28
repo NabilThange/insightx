@@ -44,12 +44,13 @@ next-env.d.ts
 /MASTER_CONTEXT
 /backend
 /FRONTEND_CONTEXT
-
+/CONECT-PAGE-UI
 # markdown files (except README)
 *.md
 !README.md
 !DESIGN_SYSTEM.md
 !INSIGHTX_TECHNICAL_DOCUMENTATION.md
+!HACKATHON_KEYS.md
 # kiro and agents
 .kiro/
 .agents/
