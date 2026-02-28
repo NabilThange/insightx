@@ -103,7 +103,14 @@ export class KeyManager {
     const metrics = this.metrics.get(this.maskKey(key));
 
     if (metrics?.status === 'failed') {
-      throw new Error('Current key is marked as failed. Call rotateKey() first.');
+      // Auto-rotate to next healthy key instead of throwing error
+      console.warn('[KeyManager] Current key is failed, attempting auto-rotation...');
+      const rotated = this.rotateKey();
+      if (!rotated) {
+        throw new Error('All API keys exhausted. Please check your Bytez API keys or wait for rate limits to reset.');
+      }
+      // Return the newly rotated key
+      return this.keys[this.currentIndex];
     }
 
     return key;
@@ -226,6 +233,17 @@ export class KeyManager {
    */
   getKeyCount(): number {
     return this.keys.length;
+  }
+
+  /**
+   * Reset all keys to healthy status (useful for recovery after rate limit cooldown)
+   */
+  resetAllKeys(): void {
+    for (const [key, metrics] of this.metrics.entries()) {
+      metrics.status = 'healthy';
+      metrics.failureReason = undefined;
+    }
+    console.log('[KeyManager] All keys reset to healthy status');
   }
 
   /**

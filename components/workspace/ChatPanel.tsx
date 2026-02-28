@@ -93,7 +93,6 @@ export default function ChatPanel({
         <div className="input-container-outer">
           <ChatInput
             onSend={onSendMessage}
-            onSubmit={(msg) => { if (msg.text) onSendMessage(msg.text); }}
             status={isStreaming ? "streaming" : "idle"}
             placeholder="Ask a question about your data..."
             disabled={isStreaming}
