@@ -1,6 +1,5 @@
 # InsightX Design System
 
-> **Source:** Based on the Konpo Landing Page design system  
 > **Philosophy:** Minimalist, Professional, Animation-Rich
 
 ---
