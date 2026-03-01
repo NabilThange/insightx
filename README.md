@@ -619,7 +619,7 @@ MIT License - see LICENSE file for details
 
 **Team Members:**
 - **Nabil Salim Thange** - [GitHub](https://github.com/NabilThange) | [Portfolio](https://nabil-thange.vercel.app/)
-- **Tanish Soni**
+- **Tanish Soni** - [Github](https://github.com/tanish1206)
 - **Yojith Rao**
 
 Built for IIT-B Techfest Hackathon
